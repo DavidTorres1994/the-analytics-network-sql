@@ -3,30 +3,58 @@
 
 -- 1. Mostrar todos los productos dentro de la categoria electro junto con todos los detalles.
 select * from stg.product_master where categoria = 'Electro'
-
+select *
+from stg.product_master
+where category= 'Electro'
 -- 2. Cuales son los producto producidos en China?
-
+select product_code, name 
+from stg.product_master
+where origin= 'China'
 -- 3. Mostrar todos los productos de Electro ordenados por nombre.
-
+select *
+from stg.product_master
+where category= 'Electro'
+order by name
 -- 4. Cuales son las TV que se encuentran activas para la venta?
-
+select *
+from stg.product_master
+where subcategory= 'TV'
+and is_active='true'
 -- 5. Mostrar todas las tiendas de Argentina ordenadas por fecha de apertura de las mas antigua a la mas nueva.
-
+select store_id, name, start_date
+from stg.store_master
+order by start_date
 -- 6. Cuales fueron las ultimas 5 ordenes de ventas?
-
+select * from stg.order_line_sale
+order by date desc
+limit 5
 -- 7. Mostrar los primeros 10 registros de el conteo de trafico por Super store ordenados por fecha.
-
+select *
+from stg.super_store_count
+order by date
+limit 10
 -- 8. Cuales son los producto de electro que no son Soporte de TV ni control remoto.
-
+select product_code, name
+from stg.product_master
+where name NOT LIKE '%Soporte TV%'
+and name NOT LIKE '%Control Remoto%'
+and category='Electro'
 -- 9. Mostrar todas las lineas de venta donde el monto sea mayor a $100.000 solo para transacciones en pesos.
-
+select * from stg.order_line_sale
+where sale>100000
+AND currency IN ('ARS','URU')
 -- 10. Mostrar todas las lineas de ventas de Octubre 2022.
-
+select *
+from stg.order_line_sale
+where EXTRACT(MONTH FROM date)=10
 -- 11. Mostrar todos los productos que tengan EAN.
-
+select *
+from stg.product_master
+WHERE ean IS NOT Null
 -- 12. Mostrar todas las lineas de venta que que hayan sido vendidas entre 1 de Octubre de 2022 y 10 de Noviembre de 2022.
-
-
+select *
+from stg.order_line_sale
+where date BETWEEN '2022-10-01' AND '2022-11-10'
 -- ## Semana 1 - Parte B
 
 -- 1. Cuales son los paises donde la empresa tiene tiendas?
