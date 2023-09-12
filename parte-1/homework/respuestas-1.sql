@@ -79,23 +79,40 @@ Select sum(tax) as Total_Tax
 from stg.order_line_sale 
 where  extract(year from date)= 2022 and currency='EUR'
 -- 6. En cuantas ordenes se utilizaron creditos?
-
+SELECT  COUNT(DISTINCT order_number)
+from stg.order_line_sale
+where credit is NOT NULL
 -- 7. Cual es el % de descuentos otorgados (sobre las ventas) por tienda?
-
+SELECT store, (SUM(promotion)/SUM(sale))as Porcentaje_de_descuentos_por_tienda
+from stg.order_line_sale
+group by store
 -- 8. Cual es el inventario promedio por dia que tiene cada tienda?
-
+SELECT store_id , SUM((initial+final)/2)/COUNT(DISTINCT date) as Inv_Prom_por_día
+FROM stg.inventory
+GRoup by store_id
 -- 9. Obtener las ventas netas y el porcentaje de descuento otorgado por producto en Argentina.
-
+SELECT product,SUM((sale-coalesce(promotion,0)+coalesce(tax,0))) as Venta_neta, (SUM(promotion)/SUM(sale))as Porcentaje_de_descuentos_por_producto 
+from stg.order_line_sale
+where currency = 'ARS'
+Group by product 
 -- 10. Las tablas "market_count" y "super_store_count" representan dos sistemas distintos que usa la empresa para contar la cantidad de gente que ingresa a tienda, uno para las tiendas de Latinoamerica y otro para Europa. Obtener en una unica tabla, las entradas a tienda de ambos sistemas.
-
+SELECT * FROM stg.super_store_count as st
+FULL OUTER JOIN stg.market_count as mc ON st.store_id=mc.store_id
 -- 11. Cuales son los productos disponibles para la venta (activos) de la marca Phillips?
 
 -- 12. Obtener el monto vendido por tienda y moneda y ordenarlo de mayor a menor por valor nominal de las ventas (sin importar la moneda).
-
+select store, currency , sum(sale) as valor_de_ventas
+from stg.order_line_sale
+Group by store, currency
+order by valor_de_ventas desc
 -- 13. Cual es el precio promedio de venta de cada producto en las distintas monedas? Recorda que los valores de venta, impuesto, descuentos y creditos es por el total de la linea.
-
+SELECT product, sum(sale)/sum(quantity) as Precio_prom_venta
+from stg.order_line_sale
+Group by product
 -- 14. Cual es la tasa de impuestos que se pago por cada orden de venta?
-
+SELECT order_number,SUM(coalesce(tax,0))/sum(sale) as Tasa_de_impuestos
+from stg.order_line_sale
+Group by order_number
 
 -- ## Semana 2 - Parte A
 
