@@ -23,6 +23,7 @@ and is_active='true'
 -- 5. Mostrar todas las tiendas de Argentina ordenadas por fecha de apertura de las mas antigua a la mas nueva.
 select store_id, name, start_date
 from stg.store_master
+where country='Argentina'
 order by start_date
 -- 6. Cuales fueron las ultimas 5 ordenes de ventas?
 select * from stg.order_line_sale
@@ -99,7 +100,8 @@ Group by product
 SELECT * FROM stg.super_store_count as st
 FULL OUTER JOIN stg.market_count as mc ON st.store_id=mc.store_id
 -- 11. Cuales son los productos disponibles para la venta (activos) de la marca Phillips?
-
+SELECT * FROM stg.product_master
+where is_active=True
 -- 12. Obtener el monto vendido por tienda y moneda y ordenarlo de mayor a menor por valor nominal de las ventas (sin importar la moneda).
 select store, currency , sum(sale) as valor_de_ventas
 from stg.order_line_sale
@@ -117,11 +119,28 @@ Group by order_number
 -- ## Semana 2 - Parte A
 
 -- 1. Mostrar nombre y codigo de producto, categoria y color para todos los productos de la marca Philips y Samsung, mostrando la leyenda "Unknown" cuando no hay un color disponible
-
+SELECT name, product_code, category, CASE  
+									 	                     WHEN color IS NULL THEN 'Unknown'
+										                     ELSE color
+									                   END AS color
+FROM stg.product_master
 -- 2. Calcular las ventas brutas y los impuestos pagados por pais y provincia en la moneda correspondiente.
+WITH store_sale as (
+select store, SUM(sale) as ventas_brutas, sum(tax) as impuestos, currency
+from stg.order_line_sale
+group by store, currency)
+select  sm.country, sm.province, sum(ss.ventas_brutas)as ventas_brutas_país_provincia, sum(ss.impuestos) as impuestos_país_provincia, ss.currency
+from stg.store_master sm
+left join store_sale ss on sm.store_id = ss.store
+group by sm.country, sm.province, ss.currency
 
 -- 3. Calcular las ventas totales por subcategoria de producto para cada moneda ordenados por subcategoria y moneda.
-  
+SELECT  subcategory,currency,sum(sale) as ventas_totales
+from stg.order_line_sale os
+left join stg.product_master pm on pm.product_code=os.product
+group by subcategory, currency
+order by subcategory, currency
+
 -- 4. Calcular las unidades vendidas por subcategoria de producto y la concatenacion de pais, provincia; usar guion como separador y usarla para ordernar el resultado.
   
 -- 5. Mostrar una vista donde sea vea el nombre de tienda y la cantidad de entradas de personas que hubo desde la fecha de apertura para el sistema "super_store".
