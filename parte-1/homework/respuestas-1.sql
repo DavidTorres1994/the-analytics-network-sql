@@ -91,17 +91,17 @@ group by store
 SELECT store_id , SUM((initial+final)/2)/COUNT(DISTINCT date) as Inv_Prom_por_día
 FROM stg.inventory
 GRoup by store_id
--- 9. Obtener las ventas netas y el porcentaje de descuento otorgado por producto en Argentina.
+-- 9. Obtener las ventas netas y el porcentaje de descuento otorgado por producto en Argentina. dudas
 SELECT product,SUM((sale-coalesce(promotion,0)+coalesce(tax,0))) as Venta_neta, (SUM(promotion)/SUM(sale))as Porcentaje_de_descuentos_por_producto 
 from stg.order_line_sale
 where currency = 'ARS'
 Group by product 
--- 10. Las tablas "market_count" y "super_store_count" representan dos sistemas distintos que usa la empresa para contar la cantidad de gente que ingresa a tienda, uno para las tiendas de Latinoamerica y otro para Europa. Obtener en una unica tabla, las entradas a tienda de ambos sistemas.
+corregir -- 10. Las tablas "market_count" y "super_store_count" representan dos sistemas distintos que usa la empresa para contar la cantidad de gente que ingresa a tienda, uno para las tiendas de Latinoamerica y otro para Europa. Obtener en una unica tabla, las entradas a tienda de ambos sistemas.
 SELECT * FROM stg.super_store_count as st
 FULL OUTER JOIN stg.market_count as mc ON st.store_id=mc.store_id
 -- 11. Cuales son los productos disponibles para la venta (activos) de la marca Phillips?
 SELECT * FROM stg.product_master
-where is_active=True
+where nombre like '%PHILIPS%' and is_active=True
 -- 12. Obtener el monto vendido por tienda y moneda y ordenarlo de mayor a menor por valor nominal de las ventas (sin importar la moneda).
 select store, currency , sum(sale) as valor_de_ventas
 from stg.order_line_sale
@@ -120,9 +120,9 @@ Group by order_number
 
 -- 1. Mostrar nombre y codigo de producto, categoria y color para todos los productos de la marca Philips y Samsung, mostrando la leyenda "Unknown" cuando no hay un color disponible
 SELECT name, product_code, category, CASE  
-									 	                     WHEN color IS NULL THEN 'Unknown'
-										                     ELSE color
-									                   END AS color
+				     WHEN color IS NULL THEN 'Unknown'
+		                     ELSE color
+                                     END AS color
 FROM stg.product_master
 -- 2. Calcular las ventas brutas y los impuestos pagados por pais y provincia en la moneda correspondiente.
 WITH store_sale as (
@@ -142,7 +142,12 @@ group by subcategory, currency
 order by subcategory, currency
 
 -- 4. Calcular las unidades vendidas por subcategoria de producto y la concatenacion de pais, provincia; usar guion como separador y usarla para ordernar el resultado.
-  
+SELECT pm.subcategory, CONCAT(sm.country,'-',sm.province) as país_provincia,sum(os.quantity) as unidades_vendidas
+FROM stg.order_line_sale os
+left join stg.product_master pm on os.product=pm.product_code
+LEFT JOIN stg.store_master sm on sm.store_id=os.store
+group by pm.subcategory,país_provincia
+order by país_provincia
 -- 5. Mostrar una vista donde sea vea el nombre de tienda y la cantidad de entradas de personas que hubo desde la fecha de apertura para el sistema "super_store".
   
 -- 6. Cual es el nivel de inventario promedio en cada mes a nivel de codigo de producto y tienda; mostrar el resultado con el nombre de la tienda.
