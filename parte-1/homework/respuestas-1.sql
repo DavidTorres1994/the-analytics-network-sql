@@ -96,9 +96,12 @@ SELECT product,SUM((sale-coalesce(promotion,0)+coalesce(tax,0))) as Venta_neta, 
 from stg.order_line_sale
 where currency = 'ARS'
 Group by product 
-corregir -- 10. Las tablas "market_count" y "super_store_count" representan dos sistemas distintos que usa la empresa para contar la cantidad de gente que ingresa a tienda, uno para las tiendas de Latinoamerica y otro para Europa. Obtener en una unica tabla, las entradas a tienda de ambos sistemas.
-SELECT * FROM stg.super_store_count as st
-FULL OUTER JOIN stg.market_count as mc ON st.store_id=mc.store_id
+-- 10. Las tablas "market_count" y "super_store_count" representan dos sistemas distintos que usa la empresa para contar la cantidad de gente que ingresa a tienda, uno para las tiendas de Latinoamerica y otro para Europa. Obtener en una unica tabla, las entradas a tienda de ambos sistemas.
+SELECT sc.store_id, TO_DATE(sc.date,'YYYY-MM-DD')AS date, sc.traffic
+FROM stg.super_store_count sc
+UNION ALL
+SELECT mc.store_id, TO_DATE(CAST(mc.date AS VARCHAR),'YYYYMMDD')AS date, mc.traffic
+FROM stg.market_count mc
 -- 11. Cuales son los productos disponibles para la venta (activos) de la marca Phillips?
 SELECT * FROM stg.product_master
 where nombre like '%PHILIPS%' and is_active=True
@@ -124,6 +127,7 @@ SELECT name, product_code, category, CASE
 		                     ELSE color
                                      END AS color
 FROM stg.product_master
+where name like '%PHILIPS%' or name like '%Samsung%'
 -- 2. Calcular las ventas brutas y los impuestos pagados por pais y provincia en la moneda correspondiente.
 WITH store_sale as (
 select store, SUM(sale) as ventas_brutas, sum(tax) as impuestos, currency
@@ -149,13 +153,40 @@ LEFT JOIN stg.store_master sm on sm.store_id=os.store
 group by pm.subcategory,país_provincia
 order by país_provincia
 -- 5. Mostrar una vista donde sea vea el nombre de tienda y la cantidad de entradas de personas que hubo desde la fecha de apertura para el sistema "super_store".
-  
+create view vista_tienda as 
+select sm.name, sc.traffic, sc.date 
+from stg.super_store_count sc
+left join stg.store_master sm on sc.store_id= sm.store_id
 -- 6. Cual es el nivel de inventario promedio en cada mes a nivel de codigo de producto y tienda; mostrar el resultado con el nombre de la tienda.
-  
+SELECT  sm.name,i.item_id, SUM((i.initial+i.final)/2)/COUNT(DISTINCT EXTRACT(month from i.date)) as Inv_Prom_por_mes
+FROM stg.inventory i
+left join stg.store_master sm on i.store_id=sm.store_id
+Group by sm.name,i.item_id
 -- 7. Calcular la cantidad de unidades vendidas por material. Para los productos que no tengan material usar 'Unknown', homogeneizar los textos si es necesario.
-  
+select CASE                                 
+       WHEN material IS NULL THEN 'Unknown'
+	   WHEN material = 'PLASTICO' THEN 'plastico'
+	   ELSE material
+	   END AS material
+	   ,sum(quantity)as Cantidad_unidades_vendidas
+from stg.order_line_sale os
+left join stg.product_master pm on pm.product_code=os.product
+group by 
+	   CASE                                 
+           WHEN material IS NULL THEN 'Unknown'
+	   WHEN material = 'PLASTICO' THEN 'plastico'
+	   ELSE material
+	END;
 -- 8. Mostrar la tabla order_line_sales agregando una columna que represente el valor de venta bruta en cada linea convertido a dolares usando la tabla de tipo de cambio.
-  
+SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on mr.month=date
 -- 9. Calcular cantidad de ventas totales de la empresa en dolares.
   
 -- 10. Mostrar en la tabla de ventas el margen de venta por cada linea. Siendo margen = (venta - descuento) - costo expresado en dolares.
