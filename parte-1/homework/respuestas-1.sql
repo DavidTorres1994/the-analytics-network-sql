@@ -188,11 +188,43 @@ SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) a
 from stg.order_line_sale os
 left join stg.monthly_average_fx_rate mr on mr.month=date
 -- 9. Calcular cantidad de ventas totales de la empresa en dolares.
-  
+with ventas_totales_en_dolares as (SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on mr.month=date)
+Select SUM(Ventas_en_dolares) as ventas_totales_de_la_empresa_en_dolares
+from ventas_totales_en_dolares
 -- 10. Mostrar en la tabla de ventas el margen de venta por cada linea. Siendo margen = (venta - descuento) - costo expresado en dolares.
-  
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.cost c on c.product_code=os.product)
+SELECT *, (ventas_en_dolares-descuento_en_dolares-costo_linea) as margen_de_venta 
+FROM order_line_Sale_dollars
 -- 11. Calcular la cantidad de items distintos de cada subsubcategoria que se llevan por numero de orden.
-  
+select os.order_number, pm.subcategory, count(distinct os.product) as Item_distinto
+from stg.order_line_sale os
+left join stg.product_master pm on os.product=pm.product_code
+group by os.order_number, pm.subcategory
 
 -- ## Semana 2 - Parte B
 
