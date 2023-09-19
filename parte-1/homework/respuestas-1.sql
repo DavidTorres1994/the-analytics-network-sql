@@ -229,24 +229,78 @@ group by os.order_number, pm.subcategory
 -- ## Semana 2 - Parte B
 
 -- 1. Crear un backup de la tabla product_master. Utilizar un esquema llamada "bkp" y agregar un prefijo al nombre de la tabla con la fecha del backup en forma de numero entero.
-  
+CREATE SCHEMA IF NOT EXISTS bkp;
+CREATE TABLE bkp.bkp_product_master_20230918 AS
+SELECT *
+FROM stg.product_master
 -- 2. Hacer un update a la nueva tabla (creada en el punto anterior) de product_master agregando la leyendo "N/A" para los valores null de material y color. Pueden utilizarse dos sentencias.
-  
+--Actualizar material
+UPDATE bkp.bkp_product_master_20230918
+SET material = 'N/A'
+WHERE material IS NULL
+--Actualizar color
+UPDATE bkp.bkp_product_master_20230918
+SET color = 'N/A'
+WHERE color IS NULL 
 -- 3. Hacer un update a la tabla del punto anterior, actualizando la columa "is_active", desactivando todos los productos en la subsubcategoria "Control Remoto".
-  
+update bkp.bkp_product_master_20230918
+set is_active=false
+where subsubcategory = 'Control remoto' 
 -- 4. Agregar una nueva columna a la tabla anterior llamada "is_local" indicando los productos producidos en Argentina y fuera de Argentina.
-  
+UPDATE bkp.bkp_product_master_20230918
+SET is_local = CASE
+		 WHEN origin = 'Argentina' then true
+		 ELSE false
+	    END  
 -- 5. Agregar una nueva columna a la tabla de ventas llamada "line_key" que resulte ser la concatenacion de el numero de orden y el codigo de producto.
-  
+ALTER TABLE stg.order_line_sale
+ADD COLUMN line_key VARCHAR
+UPDATE stg.order_line_sale
+SET line_key = order_number||'-'||product
 -- 6. Crear una tabla llamada "employees" (por el momento vacia) que tenga un id (creado de forma incremental), name, surname, start_date, end_name, phone, country, province, store_id, position. Decidir cual es el tipo de dato mas acorde.
-  
+CREATE TABLE employees (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	surname VARCHAR(255) NOT NULL,
+	start_date DATE NOT NULL, 
+	end_date DATE,
+	phone INT,
+	country VARCHAR(100),
+	province VARCHAR(100),
+	store_id INT NOT NULL,
+	position VARCHAR(100) NOT NULL
+)  
 -- 7. Insertar nuevos valores a la tabla "employees" para los siguientes 4 empleados:
     -- Juan Perez, 2022-01-01, telefono +541113869867, Argentina, Santa Fe, tienda 2, Vendedor.
     -- Catalina Garcia, 2022-03-01, Argentina, Buenos Aires, tienda 2, Representante Comercial
     -- Ana Valdez, desde 2020-02-21 hasta 2022-03-01, España, Madrid, tienda 8, Jefe Logistica
     -- Fernando Moralez, 2022-04-04, España, Valencia, tienda 9, Vendedor.
-
+-- Datos Juan
+INSERT INTO employees (name, surname, start_date, phone, country, province, store_id, position)
+VALUES('Juan', 'Perez', '2022-01-01','+541113869867', 'Argentina', 'Santa Fe', 2, 'Vendedor')
+-- Datos Catalina
+INSERT INTO employees (name, surname, start_date, phone, country, province, store_id, position)
+VALUES('Catalina', 'Garcia', '2022-03-01','','Argentina', 'Buenos Aires', 2, 'Representante Comercial')
+-- Datos Ana
+INSERT INTO employees (name, surname, start_date,end_date, country, province, store_id, position)
+VALUES('Ana', 'Valdez', '2020-02-21','2022-03-01', 'España', ' Madrid', 8, 'Jefe Logistica')
+-- Datos Fernando
+INSERT INTO employees (name, surname, start_date, country, province, store_id, position)
+VALUES('Fernando', 'Moralez','2022-04-04', 'España', ' Valencia', 9, 'Vendedor')
   
 -- 8. Crear un backup de la tabla "cost" agregandole una columna que se llame "last_updated_ts" que sea el momento exacto en el cual estemos realizando el backup en formato datetime.
-  
+CREATE TABLE cost_backup AS
+SELECT *, NOW() AS last_updated_ts
+FROM stg.cost  
 -- 9. En caso de hacer un cambio que deba revertirse en la tabla "order_line_sale" y debemos volver la tabla a su estado original, como lo harias?
+CREATE SCHEMA IF NOT EXISTS bkp;
+CREATE TABLE bkp.bkp_order_line_sale_20230919 AS
+SELECT *
+FROM stg.order_line_sale
+
+DROP TABLE IF EXISTS stg.order_line_sale
+
+-- Restaura la tabla original desde la tabla de respaldo
+CREATE TABLE stg.order_line_sale AS
+SELECT *
+FROM bkp.bkp_order_line_sale_20230919
