@@ -264,7 +264,7 @@ CREATE TABLE employees (
 	surname VARCHAR(255) NOT NULL,
 	start_date DATE NOT NULL, 
 	end_date DATE,
-	phone INT,
+	phone VARCHAR(20),
 	country VARCHAR(100),
 	province VARCHAR(100),
 	store_id INT NOT NULL,
