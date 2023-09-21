@@ -91,7 +91,7 @@ SELECT store_id , SUM((initial+final)/2)/COUNT(DISTINCT date) as Inv_Prom_por_d√
 FROM stg.inventory
 GRoup by store_id
 -- 9. Obtener las ventas netas y el porcentaje de descuento otorgado por producto en Argentina. dudas
-SELECT product,SUM((sale-coalesce(promotion,0)+coalesce(tax,0))) as Venta_neta, (SUM(promotion)/SUM(sale))as Porcentaje_de_descuentos_por_producto 
+SELECT product,SUM((sale-coalesce(promotion,0))) as Venta_neta, (SUM(promotion)/SUM(sale))as Porcentaje_de_descuentos_por_producto 
 from stg.order_line_sale
 where currency = 'ARS'
 Group by product 
