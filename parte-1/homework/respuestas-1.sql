@@ -2,7 +2,6 @@
 
 
 -- 1. Mostrar todos los productos dentro de la categoria electro junto con todos los detalles.
-select * from stg.product_master where categoria = 'Electro'
 select *
 from stg.product_master
 where category= 'Electro'
