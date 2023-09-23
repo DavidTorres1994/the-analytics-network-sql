@@ -125,21 +125,226 @@ from order_line_Sale_dollars osd
 left join inventory_dollars id on osd.date=id.date and osd.store=id.store_id and osd.product=id.item_id and osd.category=id.category
 group by  Year, Month,osd.category
 -- - AOV (Average order value), valor promedio de la orden. (USD)
-
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select extract(year from date)as Year,extract(month from date)as Month,order_number, AVG(Ventas_en_dolares-Descuento_en_dolares)AS aov
+from order_line_Sale_dollars
+group by Year, Month,order_number
+order by Year, Month 
 -- Contabilidad (USD)
 -- - Impuestos pagados
-
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select extract(year from date)as Year,extract(month from date)as Month,sum(tax_usd)as tax_usd
+from order_line_Sale_dollars
+group by Year, Month
+order by Year, Month
 -- - Tasa de impuesto. Impuestos / Ventas netas 
-
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select extract(year from date)as Year,extract(month from date)as Month,sum(tax_usd/(Ventas_en_dolares-Descuento_en_dolares))as tax_rate
+from order_line_Sale_dollars
+group by Year, Month
+order by Year, Month 
 -- - Cantidad de creditos otorgados
-
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select extract(year from date)as Year,extract(month from date)as Month,sum(credit_usd)as credit_usd
+from order_line_Sale_dollars
+group by Year, Month
+order by Year, Month 
 -- - Valor pagado final por order de linea. Valor pagado: Venta - descuento + impuesto - credito
-
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select extract(year from date)as Year,extract(month from date)as Month,order_number,sum(Ventas_en_dolares-Descuento_en_dolares+tax_usd-credit_usd)as amount_paid_usd
+from order_line_Sale_dollars
+group by Year, Month,order_number
+order by Year, Month 
 -- Supply Chain (USD)
 -- - Costo de inventario promedio por tienda
+with inventory_dollars as (SELECT date,store_id,item_id,category,
+	  (c.product_cost_usd*(i.initial+i.final)/2) as costo_inv_prom
+from stg.inventory i
+left join stg.cost c on c.product_code=i.item_id
+left join stg.product_master pm on pm.product_code=c.product_code),
+order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as date,store,product,category,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.product_master pm on pm.product_code=os.product)
 
+select extract(year from osd.date)as Year,extract(month from osd.date)as Month,osd.store, sum(costo_inv_prom) as inventory_cost_usd
+from order_line_Sale_dollars osd
+left join inventory_dollars id on osd.date=id.date and osd.store=id.store_id and osd.product=id.item_id and osd.category=id.category
+group by  Year, Month,osd.store
 -- - Costo del stock de productos que no se vendieron por tienda
+with inventory_dollars as (SELECT date,store_id,item_id,category,
+	  (c.product_cost_usd*(i.initial+i.final)/2) as costo_inv_prom
+from stg.inventory i
+left join stg.cost c on c.product_code=i.item_id
+left join stg.product_master pm on pm.product_code=c.product_code),
+order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as date,store,product,category,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.product_master pm on pm.product_code=os.product)
 
+select extract(year from id.date)as Year,extract(month from id.date)as Month,id.store_id,id.item_id,
+  osd.product, sum(costo_inv_prom) as inventory_cost_usd
+from inventory_dollars id
+left join order_line_Sale_dollars osd on osd.date=id.date and osd.store=id.store_id and osd.product=id.item_id and osd.category=id.category
+group by Year, Month, id.store_id, osd.product, id.item_id
+having osd.product is NULL
 -- - Cantidad y costo de devoluciones
 
 
