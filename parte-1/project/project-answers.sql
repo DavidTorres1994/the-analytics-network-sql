@@ -18,7 +18,7 @@ WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_tr
 	  END AS Descuento_en_dolares,
 	  (c.product_cost_usd*os.quantity) as costo_linea
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 left join stg.cost c on c.product_code=os.product)
 select extract(year from date)as Year,extract(month from date)as Month, sum(Ventas_en_dolares)AS sales_usd
 from order_line_Sale_dollars
@@ -41,7 +41,7 @@ WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_tr
 	  END AS Descuento_en_dolares,
 	  (c.product_cost_usd*os.quantity) as costo_linea
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 left join stg.cost c on c.product_code=os.product)
 select extract(year from date)as Year,extract(month from date)as Month, sum(Ventas_en_dolares-Descuento_en_dolares)AS net_sales_usd
 from order_line_Sale_dollars
@@ -64,7 +64,7 @@ WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_tr
 	  END AS Descuento_en_dolares,
 	  (c.product_cost_usd*os.quantity) as costo_linea
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 left join stg.cost c on c.product_code=os.product)
 select extract(year from date)as Year,extract(month from date)as Month, sum(Ventas_en_dolares-Descuento_en_dolares-costo_linea)AS margin_usd
 from order_line_Sale_dollars
@@ -87,12 +87,12 @@ WITH order_line_Sale_dollars as (SELECT os.order_number,os.product,pm.category, 
 	  END AS Descuento_en_dolares,
 	  (c.product_cost_usd*os.quantity) as costo_linea
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 left join stg.cost c on c.product_code=os.product
 left join stg.product_master pm on pm.product_code=os.product)
-select category, sum(Ventas_en_dolares-Descuento_en_dolares-costo_linea)AS margin_usd
+select extract(year from date)as Year,extract(month from date)as Month, category, sum(Ventas_en_dolares-Descuento_en_dolares-costo_linea)AS margin_usd
 from order_line_Sale_dollars
-group by category
+group by Year, Month, category
 
 -- - ROI por categoria de producto. ROI = ventas netas / Valor promedio de inventario (USD)
 with inventory_dollars as (SELECT date,store_id,item_id,category,
@@ -116,7 +116,7 @@ order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as 
 	  END AS Descuento_en_dolares,
 	  (c.product_cost_usd*os.quantity) as costo_linea
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 left join stg.cost c on c.product_code=os.product
 left join stg.product_master pm on pm.product_code=os.product)
 
