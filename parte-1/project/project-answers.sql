@@ -319,7 +319,7 @@ with inventory_dollars as (SELECT date,store_id,item_id,category,
 from stg.inventory i
 left join stg.cost c on c.product_code=i.item_id
 left join stg.product_master pm on pm.product_code=c.product_code),
-order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as date,store,product,category,
+order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as date,store,product,category,sale,
       CASE
 	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
 	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
@@ -340,11 +340,11 @@ left join stg.cost c on c.product_code=os.product
 left join stg.product_master pm on pm.product_code=os.product)
 
 select extract(year from id.date)as Year,extract(month from id.date)as Month,id.store_id,id.item_id,
-  osd.product, sum(costo_inv_prom) as inventory_cost_usd
+ sum(costo_inv_prom) as inventory_cost_usd
 from inventory_dollars id
 left join order_line_Sale_dollars osd on osd.date=id.date and osd.store=id.store_id and osd.product=id.item_id and osd.category=id.category
+where osd.sale is NULL
 group by Year, Month, id.store_id, osd.product, id.item_id
-having osd.product is NULL
 -- - Cantidad y costo de devoluciones
 
 
