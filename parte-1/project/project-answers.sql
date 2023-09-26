@@ -346,7 +346,32 @@ left join order_line_Sale_dollars osd on osd.date=id.date and osd.store=id.store
 where osd.sale is NULL
 group by Year, Month, id.store_id, osd.product, id.item_id
 -- - Cantidad y costo de devoluciones
-
+with return_movements_customers as (select * 
+from stg.return_movements
+where from_location='Customer'),
+order_line_Sale_dollars as (SELECT cast(date_trunc('month',os.date) as date) as date,order_number,product,quantity,sale,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS Ventas_en_dolares,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS Descuento_en_dolares,
+	  (c.product_cost_usd*os.quantity) as costo_linea
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.product_master pm on pm.product_code=os.product)
+SELECT extract(year from os.date)as Year,extract(month from os.date)as Month, sum(rm.quantity) as quantity, sum(rm.quantity*(Ventas_en_dolares/os.quantity)) as returned_sales_usd
+from order_line_Sale_dollars os
+left join return_movements_customers rm on os.order_number= rm.order_id and os.product=rm.item and date_trunc('month',os.date)::date=date_trunc('month',rm.date)::date
+group by Year, Month
 
 -- Tiendas
 -- - Ratio de conversion. Cantidad de ordenes generadas / Cantidad de gente que entra
