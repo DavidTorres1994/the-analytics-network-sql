@@ -375,4 +375,19 @@ group by Year, Month
 
 -- Tiendas
 -- - Ratio de conversion. Cantidad de ordenes generadas / Cantidad de gente que entra
+with super_store_and_market_count as(SELECT sc.store_id, TO_DATE(sc.date,'YYYY-MM-DD')AS date, sc.traffic
+FROM stg.super_store_count sc
+UNION ALL
+SELECT mc.store_id, TO_DATE(CAST(mc.date AS VARCHAR),'YYYYMMDD')AS date, mc.traffic
+FROM stg.market_count mc),
+ordenes_generadas as (Select extract(year from os.date)as Year, extract(month from os.date)as Month,count(distinct os.order_number) as Cantidad_de_ordenes_generadas
+from stg.order_line_sale os
+group by Year, Month),
+Cantidad_gente_entra as (Select extract(year from smc.date)as Year, extract(month from smc.date)as Month, sum(traffic) as Cantidad_de_gente_que_entra
+from super_store_and_market_count smc 
+group by Year, Month
+order by Year, Month)
+Select og.year,og.month, ce.cantidad_de_gente_que_entra, og.cantidad_de_ordenes_generadas, (cast(og.cantidad_de_ordenes_generadas as numeric) /cast(ce.cantidad_de_gente_que_entra as numeric))as cvr
+from Cantidad_gente_entra ce
+left join ordenes_generadas og on og.year=ce.year and og.month=ce.month
 
