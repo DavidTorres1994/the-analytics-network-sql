@@ -253,7 +253,7 @@ SET is_local = CASE
 	    END  
 -- 5. Agregar una nueva columna a la tabla de ventas llamada "line_key" que resulte ser la concatenacion de el numero de orden y el codigo de producto.
 ALTER TABLE stg.order_line_sale
-ADD COLUMN line_key VARCHAR
+ADD COLUMN line_key VARCHAR(255)
 UPDATE stg.order_line_sale
 SET line_key = order_number||'-'||product
 -- 6. Crear una tabla llamada "employees" (por el momento vacia) que tenga un id (creado de forma incremental), name, surname, start_date, end_name, phone, country, province, store_id, position. Decidir cual es el tipo de dato mas acorde.
