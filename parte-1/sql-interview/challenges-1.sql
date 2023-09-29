@@ -54,12 +54,12 @@ WHERE EXISTS (
 un conjunto de resultados únicos. --UNION ALL une las tablas y mantiene todas las filas incluido duplicadoss. 
 --4. Como encuentro registros en una tabla que no estan en otra tabla. (responder teoricamente y usando la table_1 y table_2 como ejemplo)
 --En este caso se usa left join para unir tabla 1 y tabla 2 en donde se mantiene los valores de tabla 1 y se toma los valores comunes de tabla 2,
-saber cual serían los registros de tabla 2 no comunes que no estan en tabla 1 se agrega la condición en donde el id de tabla 2 sería nulo
+--saber cual serían los registros de tabla 2 no comunes que no estan en tabla 1 se agrega la condición en donde el id de tabla 2 sería nulo
 select * 
 from test.test_table_1 as t1
 left join test.test_table_2 as t2 on t1.id=t2.id
 where t2.id is NULL
 --5. Cual es la diferencia entre INNER JOIN y LEFT JOIN.  (responder teoricamente y usando la table_1 y table_2 como ejemplo)
-La difrenecia entre INNER JOIN Y LEFT JOIN es que INNER JOIN al juntar las tablas da como resultado unicamente los resultados en común de ambas
-y LEFT JOIN mantiene todos los registros de la primera tabla que se relaciona, mientras que de la otra solo trae los registros comunes que tiene
+--La diferencia entre INNER JOIN Y LEFT JOIN es que INNER JOIN al juntar las tablas da como resultado unicamente los resultados en común de ambas
+--mientras LEFT JOIN mantiene todos los registros de la primera tabla que se relaciona y de la otra  tabla solo trae los registros comunes que tiene
 con la primera tabla
