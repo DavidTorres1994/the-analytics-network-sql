@@ -46,7 +46,7 @@ AND currency IN ('ARS','URU')
 -- 10. Mostrar todas las lineas de ventas de Octubre 2022.
 select *
 from stg.order_line_sale
-where EXTRACT(MONTH FROM date)=10
+where date between '01-10-2022' and '31-10-2022'
 -- 11. Mostrar todos los productos que tengan EAN.
 select *
 from stg.product_master
@@ -128,14 +128,10 @@ SELECT name, product_code, category, CASE
 FROM stg.product_master
 where name like '%PHILIPS%' or name like '%Samsung%'
 -- 2. Calcular las ventas brutas y los impuestos pagados por pais y provincia en la moneda correspondiente.
-WITH store_sale as (
-select store, SUM(sale) as ventas_brutas, sum(tax) as impuestos, currency
-from stg.order_line_sale
-group by store, currency)
-select  sm.country, sm.province, sum(ss.ventas_brutas)as ventas_brutas_país_provincia, sum(ss.impuestos) as impuestos_país_provincia, ss.currency
+select  sm.country, sm.province, sum(os.sale)as ventas_brutas_país_provincia, sum(os.tax) as impuestos_país_provincia, os.currency
 from stg.store_master sm
-left join store_sale ss on sm.store_id = ss.store
-group by sm.country, sm.province, ss.currency
+left join stg.order_line_sale os on sm.store_id = os.store
+group by sm.country, sm.province, os.currency
 
 -- 3. Calcular las ventas totales por subcategoria de producto para cada moneda ordenados por subcategoria y moneda.
 SELECT  subcategory,currency,sum(sale) as ventas_totales
@@ -157,25 +153,22 @@ select sm.name, sc.traffic, sc.date
 from stg.super_store_count sc
 left join stg.store_master sm on sc.store_id= sm.store_id
 -- 6. Cual es el nivel de inventario promedio en cada mes a nivel de codigo de producto y tienda; mostrar el resultado con el nombre de la tienda.
-SELECT  sm.name,i.item_id, SUM((i.initial+i.final)/2)/COUNT(DISTINCT EXTRACT(month from i.date)) as Inv_Prom_por_mes
+SELECT date_trunc('month',i.date) as mes,sm.name,i.item_id, SUM((i.initial+i.final)/2)  as Inv_Prom, COUNT(distinct i.date)AS días
 FROM stg.inventory i
 left join stg.store_master sm on i.store_id=sm.store_id
-Group by sm.name,i.item_id
+where item_id='p100014'
+group by mes,sm.name,i.item_id
 -- 7. Calcular la cantidad de unidades vendidas por material. Para los productos que no tengan material usar 'Unknown', homogeneizar los textos si es necesario.
 select CASE                                 
        WHEN material IS NULL THEN 'Unknown'
-	   WHEN material = 'PLASTICO' THEN 'plastico'
-	   ELSE material
-	   END AS material
+	   	WHEN material = 'PLASTICO' THEN 'plastico'
+	   	ELSE material
+	   	END AS material
 	   ,sum(quantity)as Cantidad_unidades_vendidas
 from stg.order_line_sale os
 left join stg.product_master pm on pm.product_code=os.product
 group by 
-	   CASE                                 
-           WHEN material IS NULL THEN 'Unknown'
-	   WHEN material = 'PLASTICO' THEN 'plastico'
-	   ELSE material
-	END;
+	 1
 -- 8. Mostrar la tabla order_line_sales agregando una columna que represente el valor de venta bruta en cada linea convertido a dolares usando la tabla de tipo de cambio.
 SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) as date) as date,
       CASE
