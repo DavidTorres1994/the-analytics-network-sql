@@ -3,6 +3,12 @@
 -- 1.Crear una vista con el resultado del ejercicio donde unimos la cantidad de gente que ingresa a tienda usando los dos sistemas.(tablas market_count y super_store_count)
 -- . Nombrar a la lista `stg.vw_store_traffic`
 -- . Las columnas son `store_id`, `date`, `traffic`
+create view stg.vw_store_traffic as
+SELECT sc.store_id, TO_DATE(sc.date,'YYYY-MM-DD')AS date, sc.traffic
+FROM stg.super_store_count sc
+UNION ALL
+SELECT mc.store_id, TO_DATE(CAST(mc.date AS VARCHAR),'YYYYMMDD')AS date, mc.traffic
+FROM stg.market_count mc
 
 -- 2. Recibimos otro archivo con ingresos a tiendas de meses anteriores. Subir el archivo a stg.super_store_count_aug y agregarlo a la vista del ejercicio anterior. Cual hubiese sido la diferencia si hubiesemos tenido una tabla? (contestar la ultima pregunta con un texto escrito en forma de comentario)
 
