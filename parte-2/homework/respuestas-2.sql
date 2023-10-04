@@ -12,17 +12,88 @@ FROM stg.market_count mc
 
 -- 2. Recibimos otro archivo con ingresos a tiendas de meses anteriores. Subir el archivo a stg.super_store_count_aug y agregarlo a la vista del ejercicio anterior. Cual hubiese sido la diferencia si hubiesemos tenido una tabla? (contestar la ultima pregunta con un texto escrito en forma de comentario)
 
+--la diferencia radica en que en la tabla los datos se guardarían en memoria, lo que significa que estarían disponibles aún cerrando sesión.
+--Las vistas proporcionaría una representación temporal de los datos
+
 -- 3. Crear una vista con el resultado del ejercicio del ejercicio de la Parte 1 donde calculamos el margen bruto en dolares. Agregarle la columna de ventas, promociones, creditos, impuestos y el costo en dolares para poder reutilizarla en un futuro. Responder con el codigo de creacion de la vista.
 -- El nombre de la vista es stg.vw_order_line_sale_usd
 -- Los nombres de las nuevas columnas son sale_usd, promotion_usd, credit_usd, tax_usd, y line_cost_usd
+create view stg.vw_order_line_sale_usd as
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS sale_usd,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS promotion_usd,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as line_cost_usd
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product)
+select *, sale_usd-promotion_usd-line_cost_usd AS margin_usd
+from order_line_Sale_dollars
 
 -- 4. Generar una query que me sirva para verificar que el nivel de agregacion de la tabla de ventas (y de la vista) no se haya afectado. Recordas que es el nivel de agregacion/detalle? Lo vimos en la teoria de la parte 1! Nota: La orden M202307319089 parece tener un problema verdad? Lo vamos a solucionar mas adelante.
-
+with stg_sales as(
+select 
+order_number,
+product,
+row_number() over(partition by order_number,product order by product asc) as rn
+from stg.order_line_sale
+)
+select *
+from stg_sales
+where rn >1
+--Para la vista
+with stg_vw_sales as(
+select 
+order_number,
+product,
+row_number() over(partition by order_number,product order by product asc) as rn
+from stg.vw_order_line_sale_usd
+)
+select *
+from stg_vw_sales
+where rn >1
 -- 5. Calcular el margen bruto a nivel Subcategoria de producto. Usar la vista creada stg.vw_order_line_sale_usd. La columna de margen se llama margin_usd
-
+select pm.subcategory, sum(margin_usd)as margin_usd
+from stg.vw_order_line_sale_usd vwos
+left join stg.product_master pm on vwos.product=pm.product_code
+group by pm.subcategory
 -- 6. Calcular la contribucion de las ventas brutas de cada producto al total de la orden.
+with total_sale_usd as(
+select order_number, product,sum(sale_usd)as sale_usd
+	--sum(sale_usd) over(partition by product)as sale_usd_by_order
+from stg.vw_order_line_sale_usd vwos
+group by order_number,product)
 
+select *,
+sum(sale_usd) over(partition by order_number)as sale_usd_by_order,
+((sale_usd)/(sum(sale_usd) over(partition by order_number)))as contri_usd_sale
+from total_sale_usd
 -- 7. Calcular las ventas por proveedor, para eso cargar la tabla de proveedores por producto. Agregar el nombre el proveedor en la vista del punto stg.vw_order_line_sale_usd. El nombre de la nueva tabla es stg.suppliers
+
 
 -- 8. Verificar que el nivel de detalle de la vista stg.vw_order_line_sale_usd no se haya modificado, en caso contrario que se deberia ajustar? Que decision tomarias para que no se genereren duplicados?
     -- - Se pide correr la query de validacion.
