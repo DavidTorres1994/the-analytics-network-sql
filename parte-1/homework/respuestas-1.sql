@@ -153,10 +153,9 @@ select sm.name, sc.traffic, sc.date
 from stg.super_store_count sc
 left join stg.store_master sm on sc.store_id= sm.store_id
 -- 6. Cual es el nivel de inventario promedio en cada mes a nivel de codigo de producto y tienda; mostrar el resultado con el nombre de la tienda.
-SELECT date_trunc('month',i.date) as mes,sm.name,i.item_id, SUM((i.initial+i.final)/2)  as Inv_Prom, COUNT(distinct i.date)AS días
+SELECT date_trunc('month',i.date) as mes,sm.name,i.item_id, (SUM((i.initial+i.final)/2))/(COUNT(distinct i.date)) AS inv_prom_días
 FROM stg.inventory i
 left join stg.store_master sm on i.store_id=sm.store_id
-where item_id='p100014'
 group by mes,sm.name,i.item_id
 -- 7. Calcular la cantidad de unidades vendidas por material. Para los productos que no tengan material usar 'Unknown', homogeneizar los textos si es necesario.
 select CASE                                 
