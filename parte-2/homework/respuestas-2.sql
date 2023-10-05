@@ -93,19 +93,68 @@ sum(sale_usd) over(partition by order_number)as sale_usd_by_order,
 ((sale_usd)/(sum(sale_usd) over(partition by order_number)))as contri_usd_sale
 from total_sale_usd
 -- 7. Calcular las ventas por proveedor, para eso cargar la tabla de proveedores por producto. Agregar el nombre el proveedor en la vista del punto stg.vw_order_line_sale_usd. El nombre de la nueva tabla es stg.suppliers
-
+create view stg.vw_order_line_sale_usd as
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS sale_usd,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS promotion_usd,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as line_cost_usd,
+	s.name						 
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.supplier s on os.product=s.product_id
+where s.is_primary=true)
+select *, sale_usd-promotion_usd-line_cost_usd AS margin_usd
+from order_line_Sale_dollars
+--Ventas por proveedor
+select name as supplier, sum(sale_usd) as sale_usd
+from stg.vw_order_line_sale_usd
+group by supplier
 
 -- 8. Verificar que el nivel de detalle de la vista stg.vw_order_line_sale_usd no se haya modificado, en caso contrario que se deberia ajustar? Que decision tomarias para que no se genereren duplicados?
     -- - Se pide correr la query de validacion.
     -- - Modificar la query de creacion de stg.vw_order_line_sale_usd  para que no genere duplicacion de las filas. 
     -- - Explicar brevemente (con palabras escrito tipo comentario) que es lo que sucedia.
-
-
-
+--Como en la tabla de "supplier", un producto puede estar relacionado con mas de un proveedor, se opta por poner la condición "s.is_primary=true"
+--que permite obtener en la tabla "supplier" un producto y un solo proveedor, de esa manera al hacer left join entre la tabla ventas y 
+--proveedores ya no se genera duplicados
 -- ## Semana 3 - Parte B
 
 -- 1. Calcular el porcentaje de valores null de la tabla stg.order_line_sale para la columna creditos y descuentos. (porcentaje de nulls en cada columna)
+with null_sale as(
+select order_number, product,case when credit IS NULL then 1 else 0 end as Credit_null,
+	case when promotion IS NULL then 1 else 0 end as Promotion_null
+from stg.order_line_sale)
 
+select 
+(sum(Credit_null)*1.00/count(*)*1.00) as porcent_total_credit_null,
+(sum(Promotion_null)*1.00/count(*)*1.00) as procent_total_promotion_null
+from null_sale
 -- 2. La columna is_walkout se refiere a los clientes que llegaron a la tienda y se fueron con el producto en la mano (es decia habia stock disponible). Responder en una misma query:
    --  - Cuantas ordenes fueron walkout por tienda?
    --  - Cuantas ventas brutas en USD fueron walkout por tienda?
