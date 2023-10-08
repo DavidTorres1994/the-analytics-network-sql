@@ -84,7 +84,7 @@ group by pm.subcategory
 -- 6. Calcular la contribucion de las ventas brutas de cada producto al total de la orden.
 with total_sale_usd as(
 select order_number, product,sum(sale_usd)as sale_usd
-	--sum(sale_usd) over(partition by product)as sale_usd_by_order
+	
 from stg.vw_order_line_sale_usd vwos
 group by order_number,product)
 
@@ -159,12 +159,125 @@ from null_sale
    --  - Cuantas ordenes fueron walkout por tienda?
    --  - Cuantas ventas brutas en USD fueron walkout por tienda?
    --  - Cual es el porcentaje de las ventas brutas walkout sobre el total de ventas brutas por tienda?
+--  - Cuantas ordenes fueron walkout por tienda?
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product,os.store, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS sale_usd,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS promotion_usd,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as line_cost_usd,
+    os.is_walkout,
+	s.name						 
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.supplier s on os.product=s.product_id
+where s.is_primary=true)   
+select store, count(distinct order_number) as cantidad_ordenes
+from order_line_Sale_dollars
+where is_walkout='True'
+group by store
+--  - Cuantas ventas brutas en USD fueron walkout por tienda?
+WITH order_line_Sale_dollars as (SELECT os.order_number,os.product,os.store, cast(date_trunc('month',os.date) as date) as date,
+      CASE
+	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	  ELSE sale
+	  END AS sale_usd,
+	  CASE
+	  WHEN os.promotion IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.promotion/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.promotion/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.promotion/fx_rate_usd_URU
+	  ELSE os.promotion
+	  END AS promotion_usd,
+	  CASE
+	  WHEN os.tax IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.tax/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.tax/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.tax/fx_rate_usd_URU
+	  ELSE os.tax
+	  END AS tax_usd,
+	  CASE
+	  WHEN os.credit IS NULL THEN 0
+	  WHEN currency = 'EUR' THEN os.credit/fx_rate_usd_eur
+	  WHEN currency = 'ARS' THEN os.credit/fx_rate_usd_peso
+	  WHEN currency = 'URU' THEN os.credit/fx_rate_usd_URU
+	  ELSE os.credit
+	  END AS credit_usd,						 
+	  (c.product_cost_usd*os.quantity) as line_cost_usd,
+    os.is_walkout,
+	s.name						 
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.supplier s on os.product=s.product_id
+where s.is_primary=true)   
+select store, sum(sale_usd) as ventas_brutas
+from order_line_Sale_dollars
+where is_walkout='True'
+group by store
+ --  - Cual es el porcentaje de las ventas brutas walkout sobre el total de ventas brutas por tienda?
+ WITH order_line_Sale_dollars as (SELECT os.store,
+      sum(CASE
+	 	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
+	  	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
+	      WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
+	      ELSE sale
+	      END) AS sale_usd,
+    os.is_walkout						 
+from stg.order_line_sale os
+left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
+left join stg.cost c on c.product_code=os.product
+left join stg.supplier s on os.product=s.product_id
+where s.is_primary=true
+group by os.store,os.is_walkout
+order by os.store)  , 
+total_Sales as (select store, sale_usd,is_walkout, sum(sale_usd) over(partition by store) as total_ventas_brutas
+from order_line_Sale_dollars)
+select *, (sale_usd/total_ventas_brutas) as porcentaje_de_ventas_brutas_walkout
+from total_Sales
+where is_walkout ='True'
 
 -- 3. Siguiendo el nivel de detalle de la tabla ventas, hay una orden que no parece cumplirlo. Como identificarias duplicados utilizando una windows function? 
 -- Tenes que generar una forma de excluir los casos duplicados, para este caso particular y a nivel general, si llegan mas ordenes con duplicaciones.
 -- Identificar los duplicados.
 -- Eliminar las filas duplicadas. Podes usar BEGIN transaction y luego rollback o commit para verificar que se haya hecho correctamente.
-
+with stg_sales as(
+select 
+order_number,
+product,
+Row_number() over(partition by order_number,product order by product asc) as rn
+from stg.order_line_sale)
+DELETE FROM stg.order_line_sale os
+where (os.order_number,os.product)in(
+	select order_number,product
+	from stg_sales 
+    where rn !=1)
 -- 4. Obtener las ventas totales en USD de productos que NO sean de la categoria TV NI esten en tiendas de Argentina. Modificar la vista stg.vw_order_line_sale_usd con todas las columnas necesarias. 
 
 -- 5. El gerente de ventas quiere ver el total de unidades vendidas por dia junto con otra columna con la cantidad de unidades vendidas una semana atras y la diferencia entre ambos.Diferencia entre las ventas mas recientes y las mas antiguas para tratar de entender un crecimiento.
