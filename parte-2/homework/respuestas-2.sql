@@ -271,15 +271,19 @@ with stg_sales as(
 select 
 order_number,
 product,
-Row_number() over(partition by order_number,product order by product asc) as rn
-from stg.order_line_sale)
+Row_number() over(partition by order_number,product order by product asc) as rn,
+MIN(CTID)AS min_ctid
+from stg.order_line_sale
+group by order_number,product)
 DELETE FROM stg.order_line_sale os
-where (os.order_number,os.product)in(
-	select order_number,product
-	from stg_sales 
-    where rn !=1)
+where CTID NOT IN (
+	select min_ctid
+	from stg_sales )
 -- 4. Obtener las ventas totales en USD de productos que NO sean de la categoria TV NI esten en tiendas de Argentina. Modificar la vista stg.vw_order_line_sale_usd con todas las columnas necesarias. 
-
+select product, sum(sale_usd)as ventas_totales
+from stg.vw_order_line_sale_usd
+where category <> 'TV' and country <> 'Argentina'
+group by product
 -- 5. El gerente de ventas quiere ver el total de unidades vendidas por dia junto con otra columna con la cantidad de unidades vendidas una semana atras y la diferencia entre ambos.Diferencia entre las ventas mas recientes y las mas antiguas para tratar de entender un crecimiento.
 
 -- 6. Crear una vista de inventario con la cantidad de inventario promedio por dia, tienda y producto, que ademas va a contar con los siguientes datos:
