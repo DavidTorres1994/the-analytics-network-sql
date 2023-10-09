@@ -285,7 +285,16 @@ from stg.vw_order_line_sale_usd
 where category <> 'TV' and country <> 'Argentina'
 group by product
 -- 5. El gerente de ventas quiere ver el total de unidades vendidas por dia junto con otra columna con la cantidad de unidades vendidas una semana atras y la diferencia entre ambos.Diferencia entre las ventas mas recientes y las mas antiguas para tratar de entender un crecimiento.
-
+with ventas_día as (
+	select cast(date_trunc('day',os.date)as date)as día,sum(quantity)as quantity
+	from stg.order_line_sale os
+	group by 1
+	order by 1)
+select v1.día, v1.quantity,v2.día, v2.quantity
+,(v2.quantity-v1.quantity)as diferencia_ventas
+,(v2.quantity-v1.quantity)*1.00/v1.quantity*1.00 as porcentaje_crecimiento
+from ventas_día v1
+inner join ventas_día v2 on v1.día=v2.día-7
 -- 6. Crear una vista de inventario con la cantidad de inventario promedio por dia, tienda y producto, que ademas va a contar con los siguientes datos:
 /* - Nombre y categorias de producto: `product_name`, `category`, `subcategory`, `subsubcategory`
 - Pais y nombre de tienda: `country`, `store_name`
