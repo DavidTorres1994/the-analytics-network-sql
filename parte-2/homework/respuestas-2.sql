@@ -82,16 +82,20 @@ from stg.vw_order_line_sale_usd vwos
 left join stg.product_master pm on vwos.product=pm.product_code
 group by pm.subcategory
 -- 6. Calcular la contribucion de las ventas brutas de cada producto al total de la orden.
-with total_sale_usd as(
-select order_number, product,sum(sale_usd)as sale_usd
-	
+with total_sale_usd_by_order_number as(
+select order_number,sum(sale_usd)as sale_usd_by_order
 from stg.vw_order_line_sale_usd vwos
-group by order_number,product)
-
-select *,
-sum(sale_usd) over(partition by order_number)as sale_usd_by_order,
-((sale_usd)/(sum(sale_usd) over(partition by order_number)))as contri_usd_sale
-from total_sale_usd
+group by order_number
+order by order_number),
+total_sale_usd_by_order_number_and_product as(
+select order_number, product,sum(sale_usd)as sale_usd
+from stg.vw_order_line_sale_usd vwos
+group by order_number,product
+order by order_number)
+select top.*,ot.sale_usd_by_order, ((top.sale_usd)/(ot.sale_usd_by_order))as contri_usd_sale
+from total_sale_usd_by_order_number_and_product top
+left join total_sale_usd_by_order_number ot on ot.order_number=top.order_number
+order by top.order_number	
 -- 7. Calcular las ventas por proveedor, para eso cargar la tabla de proveedores por producto. Agregar el nombre el proveedor en la vista del punto stg.vw_order_line_sale_usd. El nombre de la nueva tabla es stg.suppliers
 create view stg.vw_order_line_sale_usd as
 WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
@@ -308,15 +312,94 @@ inner join ventas_día v2 on v1.día=v2.día-7
     - El nivel de agregacion es dia/tienda/sku.
     - El Promedio diario Unidades vendidas ultimos 7 dias tiene que calcularse para cada dia.
 */
-        
+ create view stg.vw_inventory as
+with inventory_by_day as(
+select cast(date_trunc('day',date)as date) as día,store_id,item_id, avg(((initial+final)/2)) as avg_inventory
+from stg.inventory
+group by 1,2,3
+order by 1 asc),
+inventory_dollars as (select i.*,pm.name as product_name,pm.category,pm.subcategory,pm.subsubcategory
+,sm.country,sm.name as store_name, (i.avg_inventory*c.product_cost_usd) as inventory_cost,
+CASE
+ WHEN i.día=last_value (i.día) over(partition by i.store_id,i.item_id order by i.día asc rows between unbounded preceding and unbounded following) then TRUE
+ ELSE FALSE
+ END AS is_last_snapshot
+from inventory_by_day i
+left join stg.product_master pm on i.item_id=pm.product_code
+left join stg.store_master sm on sm.store_id=i.store_id
+left join stg.cost c on c.product_code=i.item_id),
+inventory_and_avg_sales_last_7_days as (select id.*,osd.quantity,
+AVG(osd.quantity) OVER (PARTITION BY id.store_id, id.item_id ORDER BY id.día ASC ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_units_sold_last_7_days
+from inventory_dollars id
+left join stg.order_line_sale osd on osd.date=id.día and osd.store=id.store_id and osd.product=id.item_id)
+
+select *, (avg_inventory/avg_units_sold_last_7_days) as DOH
+from inventory_and_avg_sales_last_7_days        
 
 -- ## Semana 4 - Parte A
 
 -- 1. Calcular la contribucion de las ventas brutas de cada producto al total de la orden utilizando una window function. Mismo objetivo que el ejercicio de la parte A pero con diferente metodologia.
+with total_sale_usd as(
+select order_number, product,sum(sale_usd)as sale_usd
+	
+from stg.vw_order_line_sale_usd vwos
+group by order_number,product)
 
+select *,
+sum(sale_usd) over(partition by order_number)as sale_usd_by_order,
+((sale_usd)/(sum(sale_usd) over(partition by order_number)))as contri_usd_sale
+from total_sale_usd
 -- 2. La regla de pareto nos dice que aproximadamente un 20% de los productos generan un 80% de las ventas. Armar una vista a nivel sku donde se pueda identificar por orden de contribucion, ese 20% aproximado de SKU mas importantes. Nota: En este ejercicios estamos construyendo una tabla que muestra la regla de Pareto. 
 -- El nombre de la vista es `stg.vw_pareto`. Las columnas son, `product_code`, `product_name`, `quantity_sold`, `cumulative_contribution_percentage`
+create view stg.vw_pareto as 
+ WITH order_line_sale_dollars AS (
+         SELECT os.order_number,
+            os.product,
+	 		os.quantity,
+	        pm.name as product_name,
+            pm.category,
+            sm.country,
+            date_trunc('month'::text, os.date::timestamp with time zone)::date AS date,
+                CASE
+                    WHEN os.currency::text = 'EUR'::text THEN os.sale / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.sale / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.sale / mr.fx_rate_usd_uru
+                    ELSE os.sale
+                END AS sale_usd,
+                CASE
+                    WHEN os.promotion IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.promotion / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.promotion / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.promotion / mr.fx_rate_usd_uru
+                    ELSE os.promotion
+                END AS promotion_usd,
+                CASE
+                    WHEN os.tax IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.tax / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.tax / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.tax / mr.fx_rate_usd_uru
+                    ELSE os.tax
+                END AS tax_usd,
+                CASE
+                    WHEN os.credit IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.credit / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.credit / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.credit / mr.fx_rate_usd_uru
+                    ELSE os.credit
+                END AS credit_usd,
+            c.product_cost_usd * os.quantity::numeric AS line_cost_usd
+           FROM stg.order_line_sale os
+             LEFT JOIN stg.monthly_average_fx_rate mr ON date_trunc('month'::text, mr.month::timestamp with time zone)::date = date_trunc('month'::text, os.date::timestamp with time zone)::date
+             LEFT JOIN stg.cost c ON c.product_code::text = os.product::text
+             LEFT JOIN stg.store_master sm ON sm.store_id = os.store
+             LEFT JOIN stg.product_master pm ON pm.product_code::text = os.product::text
+        ),
+sale_by_product as(select  product as product_code, product_name, sum(quantity) as quantity_sold,sum(sale_usd)as sale_usd
+from order_line_sale_dollars
+group by product,product_name)
 
+select product_code,product_name,quantity_sold, (sum(sale_usd) over (order by sale_usd desc))/(sum(sale_usd) over ()) as cumulative_contribution_percentage
+from sale_by_product
 -- 3. Calcular el crecimiento de ventas por tienda mes a mes, con el valor nominal y el valor % de crecimiento.
 
 -- 4. Crear una vista a partir de la tabla return_movements que este a nivel Orden de venta, item y que contenga las siguientes columnas:
