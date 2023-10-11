@@ -463,7 +463,12 @@ inner join ventas_por_tienda_mes_a_mes v2 on v1.mes=v2.mes- interval '1 month' a
 - `first_location` (primer lugar registrado, de la columna `from_location`, para la orden/producto)
 - `last_location` (el ultimo lugar donde se registro, de la columna `to_location` el producto/orden)
 - El nombre de la vista es `stg.vw_returns`*/
-
+create view stg.vw_returns as
+select rm.order_id as order_number,rm.item,rm.quantity,rm.date,(ols.sale_usd*rm.quantity/ols.quantity)as sale_returned_usd,
+pm.name as product_name, pm.category,pm.subcategory, rm.from_location as first_location, rm.to_location as last_location
+from stg.return_movements rm
+left join stg.vw_order_line_sale_usd ols on rm.order_id=ols.order_number and rm.item=ols.product
+left join stg.product_master pm on pm.product_code=rm.item
 -- 5. Crear una tabla calendario llamada stg.date con las fechas del 2022 incluyendo el año fiscal y trimestre fiscal (en ingles Quarter). El año fiscal de la empresa comienza el primero Febrero de cada año y dura 12 meses. Realizar la tabla para 2022 y 2023. La tabla debe contener:
 /* - Fecha (date) `date`
 - Mes (date) `month`
@@ -477,7 +482,18 @@ inner join ventas_por_tienda_mes_a_mes v2 on v1.mes=v2.mes- interval '1 month' a
 - Fecha del año anterior (date, ejemplo: 2021-01-01 para la fecha 2022-01-01) `date_ly`
 - Nota: En general una tabla date es creada para muchos años mas (minimo 10), en este caso vamos a realizarla para el 2022 y 2023 nada mas.. 
 */
-
+SELECT 
+  TO_CHAR(date, 'yyyymmdd')::integer AS date_id,
+  CAST(date AS date) AS date,
+  CAST(date_trunc('month', date) AS date) AS month,
+  CAST(date_trunc('year', date) AS date) AS year,
+  TO_CHAR(CAST(date_trunc('day', date) AS date), 'Day') AS Dia_de_la_semana,
+  CASE  
+    WHEN EXTRACT(DOW FROM date) IN (0, 6)  THEN TRUE
+    ELSE FALSE
+  END AS is_weekend
+FROM (SELECT CAST('2022-01-01' AS date) + (n || 'day')::interval AS date
+      FROM generate_series(0, 730) n) dd;
 -- ## Semana 4 - Parte B
 
 -- 1. Calcular el crecimiento de ventas por tienda mes a mes, con el valor nominal y el valor % de crecimiento. Utilizar self join.
