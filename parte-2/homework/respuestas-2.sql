@@ -565,5 +565,16 @@ select v2.store,v2.mes, v1.sale_usd as sale_usd_mes_anterior
 from ventas_por_tienda_mes_a_mes v1
 inner join ventas_por_tienda_mes_a_mes v2 on v1.mes=v2.mes- interval '1 month' and v1.store=v2.store
 -- 2. Hacer un update a la tabla de stg.product_master agregando una columna llamada brand, con la marca de cada producto con la primer letra en mayuscula. Sabemos que las marcas que tenemos son: Levi's, Tommy Hilfiger, Samsung, Phillips, Acer, JBL y Motorola. En caso de no encontrarse en la lista usar Unknown.
-
+UPDATE stg.product_master
+SET brand=
+  CASE
+  WHEN name like '%Levi%' THEN 'Levi''s'
+  WHEN name like '%Tommy Hilfiger%' THEN 'Tommy Hilfigers'
+  WHEN name like '%Samsung%' OR name like '%SAMSUNG%'THEN 'Samsung'
+  WHEN name like '%Philips%' OR name like '%PHILIPS%' THEN 'Phillips'
+  WHEN name like '%Acer%' THEN 'Acer'
+  WHEN name like '%JBL%' THEN 'JBL'
+  WHEN name like '%Motorola%' OR name like '%MOTOROLA%' THEN 'Motorola'
+  else 'Unknown'
+  END
 -- 3. Un jefe de area tiene una tabla que contiene datos sobre las principales empresas de distintas industrias en rubros que pueden ser competencia y nos manda por mail la siguiente informacion: (ver informacion en md file)
