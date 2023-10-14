@@ -491,13 +491,79 @@ SELECT
   CASE  
     WHEN EXTRACT(DOW FROM date) IN (0, 6)  THEN TRUE
     ELSE FALSE
-  END AS is_weekend
+  END AS is_weekend,
+  TO_CHAR(CAST(date_trunc('month', date) AS date), 'Month') AS month_label,
+          (CASE 
+            WHEN EXTRACT(MONTH FROM date) < 2 THEN EXTRACT(YEAR FROM date) - 1 
+            ELSE EXTRACT(YEAR FROM date) END || '-02-01')::date AS fiscal_year,
+		CONCAT('FY',CASE 
+            WHEN EXTRACT(MONTH FROM date) < 2 THEN EXTRACT(YEAR FROM date) - 1 
+            ELSE EXTRACT(YEAR FROM date) END) AS fiscal_year_label,
+		CASE 
+          WHEN EXTRACT(MONTH FROM date) BETWEEN 2 AND 4 THEN 'Q1'
+          WHEN EXTRACT(MONTH FROM date) BETWEEN 5 AND 7 THEN 'Q2'
+          WHEN EXTRACT(MONTH FROM date) BETWEEN 8 AND 10 THEN 'Q3'
+          ELSE 'Q4'	
+		END AS fiscal_quarter_label,
+		CAST( date - interval '1 year' AS date)::date AS date_ly
+		
 FROM (SELECT CAST('2022-01-01' AS date) + (n || 'day')::interval AS date
       FROM generate_series(0, 730) n) dd;
 -- ## Semana 4 - Parte B
 
 -- 1. Calcular el crecimiento de ventas por tienda mes a mes, con el valor nominal y el valor % de crecimiento. Utilizar self join.
-
+WITH order_line_sale_dollars AS (
+         SELECT os.order_number,
+            os.product,
+	        os.store,
+	 		os.quantity,
+	        pm.name as product_name,
+            pm.category,
+            sm.country,
+            date_trunc('month'::text, os.date::timestamp with time zone)::date AS date,
+                CASE
+                    WHEN os.currency::text = 'EUR'::text THEN os.sale / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.sale / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.sale / mr.fx_rate_usd_uru
+                    ELSE os.sale
+                END AS sale_usd,
+                CASE
+                    WHEN os.promotion IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.promotion / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.promotion / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.promotion / mr.fx_rate_usd_uru
+                    ELSE os.promotion
+                END AS promotion_usd,
+                CASE
+                    WHEN os.tax IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.tax / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.tax / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.tax / mr.fx_rate_usd_uru
+                    ELSE os.tax
+                END AS tax_usd,
+                CASE
+                    WHEN os.credit IS NULL THEN 0::numeric
+                    WHEN os.currency::text = 'EUR'::text THEN os.credit / mr.fx_rate_usd_eur
+                    WHEN os.currency::text = 'ARS'::text THEN os.credit / mr.fx_rate_usd_peso
+                    WHEN os.currency::text = 'URU'::text THEN os.credit / mr.fx_rate_usd_uru
+                    ELSE os.credit
+                END AS credit_usd,
+            c.product_cost_usd * os.quantity::numeric AS line_cost_usd
+           FROM stg.order_line_sale os
+             LEFT JOIN stg.monthly_average_fx_rate mr ON date_trunc('month'::text, mr.month::timestamp with time zone)::date = date_trunc('month'::text, os.date::timestamp with time zone)::date
+             LEFT JOIN stg.cost c ON c.product_code::text = os.product::text
+             LEFT JOIN stg.store_master sm ON sm.store_id = os.store
+             LEFT JOIN stg.product_master pm ON pm.product_code::text = os.product::text
+        ),
+ventas_por_tienda_mes_a_mes as (
+	select cast(date_trunc('month',date)as date)as mes, store, sum(sale_usd)as sale_usd
+	from order_line_sale_dollars
+	group by 1, 2
+	order by 1)
+select v2.store,v2.mes, v1.sale_usd as sale_usd_mes_anterior
+,(v2.sale_usd-v1.sale_usd)*1.00/v1.sale_usd*1.00 as porcentaje_crecimiento
+from ventas_por_tienda_mes_a_mes v1
+inner join ventas_por_tienda_mes_a_mes v2 on v1.mes=v2.mes- interval '1 month' and v1.store=v2.store
 -- 2. Hacer un update a la tabla de stg.product_master agregando una columna llamada brand, con la marca de cada producto con la primer letra en mayuscula. Sabemos que las marcas que tenemos son: Levi's, Tommy Hilfiger, Samsung, Phillips, Acer, JBL y Motorola. En caso de no encontrarse en la lista usar Unknown.
 
 -- 3. Un jefe de area tiene una tabla que contiene datos sobre las principales empresas de distintas industrias en rubros que pueden ser competencia y nos manda por mail la siguiente informacion: (ver informacion en md file)
