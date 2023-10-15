@@ -565,6 +565,8 @@ select v2.store,v2.mes, v1.sale_usd as sale_usd_mes_anterior
 from ventas_por_tienda_mes_a_mes v1
 inner join ventas_por_tienda_mes_a_mes v2 on v1.mes=v2.mes- interval '1 month' and v1.store=v2.store
 -- 2. Hacer un update a la tabla de stg.product_master agregando una columna llamada brand, con la marca de cada producto con la primer letra en mayuscula. Sabemos que las marcas que tenemos son: Levi's, Tommy Hilfiger, Samsung, Phillips, Acer, JBL y Motorola. En caso de no encontrarse en la lista usar Unknown.
+ALTER TABLE stg.product_master
+ADD COLUMN brand VARCHAR(255)
 UPDATE stg.product_master
 SET brand=
   CASE
@@ -578,3 +580,35 @@ SET brand=
   else 'Unknown'
   END
 -- 3. Un jefe de area tiene una tabla que contiene datos sobre las principales empresas de distintas industrias en rubros que pueden ser competencia y nos manda por mail la siguiente informacion: (ver informacion en md file)
+CREATE TABLE test.facturacion (
+ empresa VARCHAR(255) NOT NULL,
+ rubro VARCHAR(255) NOT NULL,
+ facturacion numeric NOT NULL)
+ 
+INSERT INTO test.facturacion (empresa,rubro,facturacion)
+VALUES('El Corte Ingles','Departamental',110990000000000)
+INSERT INTO test.facturacion (empresa,rubro,facturacion)
+VALUES('Mercado Libre','ECOMMERCE',115860000000000)
+INSERT INTO test.facturacion (empresa,rubro,facturacion)
+VALUES('Fallabela','departamental',20460000)
+INSERT INTO test.facturacion (empresa,rubro,facturacion)
+VALUES('Tienda Inglesa','Departamental',10780000)
+INSERT INTO test.facturacion (empresa,rubro,facturacion)
+VALUES('Zara','INDUMENTARIA',999980000)
+
+with fact_por_rubro as (SELECT case 
+          when rubro='Departamental' then 'departamental'
+		  when rubro='ECOMMERCE' then 'ecommerce'
+		  when rubro='INDUMENTARIA' then 'indumentaria'
+		  else rubro 
+		  end as rubro
+, sum(facturacion)as facturacion_total
+FROM test.facturacion
+group by 1
+order by 1 asc)
+select rubro, case 
+                 when (facturacion_total/1000000000000)>=100 then CONCAT(CAST(ROUND(facturacion_total/1000000000000.0, 2) AS VARCHAR), 'B')
+				 when (facturacion_total/1000000)>=100 then CONCAT(CAST(ROUND(facturacion_total/1000000, 2) AS VARCHAR), 'M')
+			   else CAST(ROUND(facturacion_total, 2) AS VARCHAR)
+			   end as facturacion_total
+from fact_por_rubro
