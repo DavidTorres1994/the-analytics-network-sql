@@ -17,10 +17,11 @@ order_line_sale_dollars AS (
 	        s.name as supplier,
             sm.country,
 	        sm.province,
+	        sm.store_id as tienda,
 	        sm.name as store_name,
 	        os.store,
             date_trunc('month'::text, os.date::timestamp with time zone)::date AS date,
-	        count(distinct os.order_number) as cant_order_number,
+	        count(DISTINCT os.order_number) as cant_order_number,
             sum(CASE
                     WHEN os.currency::text = 'EUR'::text THEN os.sale / mr.fx_rate_usd_eur
                     WHEN os.currency::text = 'ARS'::text THEN os.sale / mr.fx_rate_usd_peso
@@ -59,7 +60,7 @@ order_line_sale_dollars AS (
 			group by os.product
 	       ,pm.category, pm.subcategory,
 	        pm.subsubcategory,
-	        s.name,sm.country,sm.province, sm.name, os.store,
+	        s.name,sm.country,sm.province,sm.store_id, sm.name, os.store,
             date_trunc('month'::text, os.date::timestamp with time zone)::date
         ),
 Calendar AS (SELECT 
@@ -102,27 +103,15 @@ from stg.order_line_sale),
 return_movements_by_month as (SELECT os.mes,os.product as product2 ,sum(rm.quantity) as quantity
 from order_line_sale os
 left join return_movements_customers rm on os.order_number= rm.order_id and os.product=rm.item and date_trunc('month',os.mes)::date=date_trunc('month',rm.date)::date
-group by os.mes,os.product)--,
-select año_mes,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quarter_label,product,category,subcategory,subsubcategory,supplier,store_name,country,province,sale_usd, promotion_usd, tax_usd, credit_usd
+group by os.mes,os.product),
+Cantidad_gente_entra as (Select date_trunc('Month',smc.date)as año_mes1,store_id, sum(traffic) as Cantidad_de_gente_que_entra
+from stg.vw_store_traffic smc 
+group by date_trunc('Month',smc.date),store_id)
+select año_mes,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quarter_label,product,category,subcategory,subsubcategory,supplier,tienda,store_name,country,province,sale_usd, promotion_usd, tax_usd, credit_usd
 , (sale_usd-promotion_usd) as net_sales_usd, (sale_usd-promotion_usd+tax_usd-credit_usd)as amount_paid_usd
 ,(sale_usd-promotion_usd)/(costo_inv_prom)as roi, line_cost_usd, (sale_usd-promotion_usd-line_cost_usd)AS margin_usd,
-cant_order_number,(quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity
+cant_order_number as cantidad_de_ordenes_generadas,(quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity,
+(cantidad_de_gente_que_entra*1.00/(count(cge.*) over(partition by cge.año_mes1,cge.store_id))) as cantidad_de_gente_que_entra
 from sale_by_product spo
 left join return_movements_by_month rmm on rmm.mes=spo.año_mes and rmm.product2=spo.product
-
-/*super_store_and_market_count as(SELECT sc.store_id, TO_DATE(sc.date,'YYYY-MM-DD')AS date, sc.traffic
-FROM stg.super_store_count sc
-UNION ALL
-SELECT mc.store_id, TO_DATE(CAST(mc.date AS VARCHAR),'YYYYMMDD')AS date, mc.traffic
-FROM stg.market_count mc),
-ordenes_generadas as (Select date_trunc('Month',spo.año_mes)as año_mes,sum(cant_order_number) as Cantidad_de_ordenes_generadas
-from sale_by_product spo
-group by date_trunc('Month',spo.año_mes)),
-Cantidad_gente_entra as (Select date_trunc('Month',smc.date)as año_mes, sum(traffic) as Cantidad_de_gente_que_entra
-from super_store_and_market_count smc 
-group by date_trunc('Month',smc.date))
-Select og.año_mes, ce.cantidad_de_gente_que_entra, og.cantidad_de_ordenes_generadas, (cast(og.cantidad_de_ordenes_generadas as numeric) /cast(ce.cantidad_de_gente_que_entra as numeric))as cvr
-from Cantidad_gente_entra ce
-left join ordenes_generadas og on og.año_mes=ce.año_mes 
-order by og.año_mes desc
-*/
+left join Cantidad_gente_entra cge on cge.año_mes1=spo.año_mes and cge.store_id=spo.tienda
