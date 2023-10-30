@@ -152,11 +152,11 @@ CREATE TABLE IF NOT EXISTS stg.supplier
     name character varying(255) COLLATE pg_catalog."default",
     is_primary boolean
 );
--- Table: stg.employees
+-- Table: stg.employee
 
-DROP TABLE IF EXISTS stg.employees;
+DROP TABLE IF EXISTS stg.employee;
 
-CREATE TABLE IF NOT EXISTS stg.employees
+CREATE TABLE IF NOT EXISTS stg.employee
 (
     id integer NOT NULL DEFAULT nextval('employees_id_seq'::regclass),
     name character varying(255) COLLATE pg_catalog."default" NOT NULL,
