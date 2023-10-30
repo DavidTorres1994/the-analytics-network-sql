@@ -142,3 +142,31 @@ CREATE TABLE IF NOT EXISTS stg.return_movements
     received_by varchar(255),
     date date
 );
+-- Table: stg.supplier
+
+DROP TABLE IF EXISTS stg.supplier;
+
+CREATE TABLE IF NOT EXISTS stg.supplier
+(
+    product_id character varying(255) COLLATE pg_catalog."default",
+    name character varying(255) COLLATE pg_catalog."default",
+    is_primary boolean
+);
+-- Table: stg.employees
+
+DROP TABLE IF EXISTS stg.employees;
+
+CREATE TABLE IF NOT EXISTS stg.employees
+(
+    id integer NOT NULL DEFAULT nextval('employees_id_seq'::regclass),
+    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    surname character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    start_date date NOT NULL,
+    end_date date,
+    phone character varying(100) COLLATE pg_catalog."default",
+    country character varying(100) COLLATE pg_catalog."default",
+    province character varying(100) COLLATE pg_catalog."default",
+    store_id integer NOT NULL,
+    "position" character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT employees_pkey PRIMARY KEY (id)
+);
