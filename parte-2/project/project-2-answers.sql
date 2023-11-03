@@ -15,7 +15,8 @@ order by TO_DATE(sh.year || '-01-01','YYYY-MM-DD')),
 order_line_sale_dollars AS (
          SELECT 
             os.product,
-            pm.name as product_name, 
+            pm.name as product_name,
+	        sum(os.quantity) as quantity,
             pm.category,
 	        pm.subcategory,
 	        pm.subsubcategory,
@@ -111,7 +112,7 @@ where from_location='Customer'),
 order_line_sale as(
 select *, date_trunc('month',date) AS mes
 from stg.order_line_sale),							 
-return_movements_by_month as (SELECT os.mes,os.product as product2 ,sum(rm.quantity) as return_quantity, sum(os.quantity) as quantity
+return_movements_by_month as (SELECT os.mes,os.product as product2 ,sum(rm.quantity) as return_quantity--, sum(os.quantity) as quantity
 from order_line_sale os
 left join return_movements_customers rm on os.order_number= rm.order_id and os.product=rm.item and date_trunc('month',os.mes)::date=date_trunc('month',rm.date)::date
 group by os.mes,os.product),
@@ -161,7 +162,8 @@ select spo.date1,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quar
 , promotion_usd,promotion, tax_usd,tax, credit_usd,credit
 , (gross_sales_usd-promotion_usd) as net_sales_usd,(gross_sales-promotion) as net_sales, (gross_sales_usd-promotion_usd+tax_usd-credit_usd)as amount_paid_usd,(gross_sales-promotion+tax-credit)as amount_paid
 ,(gross_sales_usd-promotion_usd)/(costo_inv_prom)as roi, sale_line_cost_usd, (costo_add*1.00/(count(spo.*) over(partition by date_trunc('Year',spo.date1),product,tienda)))as other_cost, (gross_sales_usd-sale_line_cost_usd)AS gross_margin_usd,
- cant_order_number as cantidad_de_ordenes_generadas,(rmm.quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as quantity,(rmm.return_quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity,
+ cant_order_number as cantidad_de_ordenes_generadas,
+quantity,(rmm.return_quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity,
 (cantidad_de_gente_que_entra*1.00/(count(cge.*) over(partition by cge.año_mes1,cge.store_id))) as cantidad_de_gente_que_entra
 from sale_by_product spo
 LEFT JOIN philips_count1 pc ON EXTRACT(YEAR FROM spo.date1) = pc.año
