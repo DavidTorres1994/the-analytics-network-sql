@@ -482,8 +482,21 @@ left join stg.product_master pm on pm.product_code=rm.item
 - Fecha del año anterior (date, ejemplo: 2021-01-01 para la fecha 2022-01-01) `date_ly`
 - Nota: En general una tabla date es creada para muchos años mas (minimo 10), en este caso vamos a realizarla para el 2022 y 2023 nada mas.. 
 */
+CREATE TABLE stg.date (
+	date date,
+	month date, 
+	year date,
+	Dia_de_la_semana text,
+	is_weekend boolean,
+	month_label text,
+	fiscal_year date,
+	fiscal_year_label text,
+	fiscal_quarter_label text,
+	date_ly date
+);
+INSERT INTO stg.date(date,month,year,Dia_de_la_semana,is_weekend,month_label,fiscal_year,fiscal_year_label,fiscal_quarter_label,date_ly)
 SELECT 
-  TO_CHAR(date, 'yyyymmdd')::integer AS date_id,
+ -- TO_CHAR(date, 'yyyymmdd')::integer AS date_id,
   CAST(date AS date) AS date,
   CAST(date_trunc('month', date) AS date) AS month,
   CAST(date_trunc('year', date) AS date) AS year,
@@ -508,7 +521,7 @@ SELECT
 		CAST( date - interval '1 year' AS date)::date AS date_ly
 		
 FROM (SELECT CAST('2022-01-01' AS date) + (n || 'day')::interval AS date
-      FROM generate_series(0, 730) n) dd;
+      FROM generate_series(0, 730) n) dd
 -- ## Semana 4 - Parte B
 
 -- 1. Calcular el crecimiento de ventas por tienda mes a mes, con el valor nominal y el valor % de crecimiento. Utilizar self join.
