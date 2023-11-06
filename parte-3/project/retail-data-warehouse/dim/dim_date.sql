@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS dim.date
   foreign key (date)
   references fct.inventory(date)
   references fct.store_traffic(date)
-  references fct.fx_rate(month)
   references fct.return_movements(date)
-  references fct.order_line_sale(date)
-
+  references fct.order_line_sale(date),
+  constraint fk_month_date
+  foreign key (month)	
+  references fct.fx_rate(month)
 );
