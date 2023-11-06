@@ -14,4 +14,7 @@ CREATE TABLE IF NOT EXISTS fct.return_movements
   constraint fk_item_return_movements
   foreign key (item)
   references dim.product_master(product_code)
+  constraint fk_date_return_movements
+  foreign key (date)
+  references dim.date(date)
 );
