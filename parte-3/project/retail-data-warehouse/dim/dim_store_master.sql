@@ -1,1 +1,19 @@
+-- Table: dim.store_master
+
+DROP TABLE IF EXISTS dim.store_master;
+
+CREATE TABLE IF NOT EXISTS dim.store_master
+(
+                store_id  SMALLINT
+              , country           VARCHAR(100)
+              , province      VARCHAR(100)
+              , city         VARCHAR(100)
+              , address      VARCHAR(255)
+              , name         VARCHAR(255)
+              , type           VARCHAR(100)
+              , start_date DATE
+              , constraint fk_store_id_store_master
+                 foreign key (store_id)
+                references dim.employee(store_id)
+                 );
 
