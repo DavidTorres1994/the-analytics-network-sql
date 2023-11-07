@@ -15,4 +15,13 @@ CREATE TABLE fct.order_line_sale
                             , currency     varchar(3)
                             , pos        SMALLINT
                             , is_walkout BOOLEAN
+                constraint fk_product_order_line_sale
+                foreign key (product)
+                references dim.product_master(product_code)
+                constraint fk_store_order_line_sale
+                foreign key (store)
+                references dim.store_master(store_id)
+                constraint fk_date_order_line_sale
+                foreign key (date)
+                references dim.date(date)
                  );
