@@ -15,9 +15,4 @@ CREATE TABLE IF NOT EXISTS dim.product_master
                             , ean             bigint
                             , is_active       boolean
                             , has_bluetooth   boolean
-                            , size            VARCHAR(255))/*,
-                      constraint fk_product_code_product_master
-                      foreign key (product_code)
-                      references dim.supplier(product_id)
-                 );*/
-
+                            , size            VARCHAR(255))
