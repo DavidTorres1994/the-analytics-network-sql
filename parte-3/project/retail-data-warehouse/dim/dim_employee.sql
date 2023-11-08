@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS dim.employee
     
     constraint fk_store_id_employee
     foreign key (store_id)
-    references dim.store_master(store_id)
+    references dim.store_master(store_id),
+    constraint fk_start_date_employee
+    foreign key (start_date)
+    references dim.date(date),
+     constraint fk_end_date_employee
+    foreign key (end_date)
+    references dim.date(date)
 
 );
