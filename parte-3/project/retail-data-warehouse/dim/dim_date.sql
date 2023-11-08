@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS dim.date
 	fiscal_year date,
 	fiscal_year_label text,
 	fiscal_quarter_label text,
-	date_ly date,
+	date_ly date) /*,
   constraint fk_date_date
   foreign key (date)
   references fct.inventory(date)
@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS dim.date
   constraint fk_month_date
   foreign key (month)	
   references fct.fx_rate(month)
-);
+);*/
