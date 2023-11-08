@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS dim.store_master;
 
 CREATE TABLE IF NOT EXISTS dim.store_master
 (
-                store_id  SMALLINT
+                store_id  SMALLINT PRIMARY KEY
               , country           VARCHAR(100)
               , province      VARCHAR(100)
               , city         VARCHAR(100)
