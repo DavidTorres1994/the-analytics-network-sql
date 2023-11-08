@@ -1,6 +1,6 @@
 -- Table fct.fx_rate
 
-DROP TABLE IF EXISTS fct.fx_rate
+DROP TABLE IF EXISTS fct.fx_rate;
 
 CREATE TABLE IF NOT EXISTS fct.fx_rate
 (
@@ -11,6 +11,6 @@ CREATE TABLE IF NOT EXISTS fct.fx_rate
             ,
              constraint fk_month_fx_rate
              foreign key (month)
-             references dim.date(month)
+             references dim.date(date)
   
 );
