@@ -11,9 +11,5 @@ CREATE TABLE IF NOT EXISTS dim.store_master
               , address      VARCHAR(255)
               , name         VARCHAR(255)
               , type           VARCHAR(100)
-              , start_date DATE
-              , constraint fk_store_id_store_master
-                 foreign key (store_id)
-                references dim.employee(store_id)
-                 );
-
+              , start_date DATE )
+    
