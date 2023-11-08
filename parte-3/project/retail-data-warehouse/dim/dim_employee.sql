@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS dim.employee
 	province VARCHAR(100),
 	store_id INT NOT NULL,
 	position VARCHAR(100) NOT NULL,
-    is_active boolean,
+        is_active boolean,
+	current_flag BOOLEAN,
+        effective_start_date DATE,
+         effective_end_date DATE,
     
     constraint fk_store_id_employee
     foreign key (store_id)
