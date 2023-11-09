@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS dim.employee;
 
 CREATE TABLE IF NOT EXISTS dim.employee
 (   id SERIAL PRIMARY KEY,
+	employee_key SERIAL UNIQUE,
 	name VARCHAR(255) NOT NULL,
 	surname VARCHAR(255) NOT NULL,
 	start_date DATE NOT NULL, 
@@ -27,12 +28,4 @@ CREATE TABLE IF NOT EXISTS dim.employee
     foreign key (end_date)
     references dim.date(date)
 );
-ALTER TABLE dim.employee
-ADD COLUMN employee_key SERIAL;
-
-ALTER TABLE dim.employee
-ALTER COLUMN employee_key SET NOT NULL;
-
-ALTER TABLE dim.employee
-ADD CONSTRAINT pk_employee_key PRIMARY KEY (employee_key);
 
