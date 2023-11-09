@@ -26,5 +26,13 @@ CREATE TABLE IF NOT EXISTS dim.employee
      constraint fk_end_date_employee
     foreign key (end_date)
     references dim.date(date)
-
 );
+ALTER TABLE dim.employee
+ADD COLUMN employee_key SERIAL;
+
+ALTER TABLE dim.employee
+ALTER COLUMN employee_key SET NOT NULL;
+
+ALTER TABLE dim.employee
+ADD CONSTRAINT pk_employee_key PRIMARY KEY (employee_key);
+
