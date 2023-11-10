@@ -1,3 +1,4 @@
+CREATE OR REPLACE PROCEDURE etl.sp_dim_cost()
 LANGUAGE sql AS $$
     with stg_cost as (SELECT dp.product_code, dc.product_cost_usd
     FROM dim.product_master dp
