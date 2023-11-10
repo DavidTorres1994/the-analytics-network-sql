@@ -36,5 +36,5 @@ BEGIN
         END;
 END;
 $$;
-
+call etl.sp_dim_product_master()
 
