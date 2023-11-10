@@ -9,8 +9,13 @@ LANGUAGE sql AS $$
   
     INSERT INTO fct.store_traffic(store_id,date,traffic)
     SELECT store_id,date,traffic
-    FROM store_traffic;
-    
-
-$$;
-call etl.sp_fct_store_traffic() 
+    FROM store_traffic st
+	WHERE NOT EXISTS (
+        SELECT 1
+        FROM fct.store_traffic ft
+        WHERE ft.store_id = st.store_id
+		and ft.date=st.date
+	              );
+  $$;
+  
+call etl.sp_fct_store_traffic()
