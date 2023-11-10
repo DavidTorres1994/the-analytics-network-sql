@@ -2,15 +2,7 @@ CREATE OR REPLACE PROCEDURE etl.sp_dim_date()
 LANGUAGE plpgsql AS $$    
 BEGIN
    
-    UPDATE dim.date
-    SET Dia_de_la_semana = initcap(Dia_de_la_semana);  
-    -- Actualizar la columna 'month_label'
-    UPDATE dim.date
-    SET month_label = initcap(month_label);
-    UPDATE dim.date
-    SET fiscal_year_label = initcap(fiscal_year_label);
-    UPDATE dim.date
-    SET fiscal_quarter_label = initcap(fiscal_quarter_label);
+    
     INSERT INTO dim.date(date,month,year,Dia_de_la_semana,is_weekend,month_label,fiscal_year,fiscal_year_label,fiscal_quarter_label,date_ly)
     SELECT 
 
@@ -38,5 +30,17 @@ BEGIN
 		CAST( date - interval '1 year' AS date)::date AS date_ly
 		FROM (SELECT CAST('2022-01-01' AS date) + (n || 'day')::interval AS date
         FROM generate_series(0, 1825) n) dd;
+    -- Actualizar la columna 'Dia_de_la_semana'	    
+    UPDATE dim.date 
+    SET Dia_de_la_semana = initcap(Dia_de_la_semana);  
+    -- Actualizar la columna 'month_label'
+    UPDATE dim.date
+    SET month_label = initcap(month_label);
+    -- Actualizar la columna 'fiscal_year_label'
+    UPDATE dim.date
+    SET fiscal_year_label = initcap(fiscal_year_label);
+     -- Actualizar la columna 'fiscal_quarter_label'
+    UPDATE dim.date
+    SET fiscal_quarter_label = initcap(fiscal_quarter_label);
 END;
 $$;
