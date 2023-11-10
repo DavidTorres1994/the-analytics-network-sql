@@ -44,3 +44,4 @@ BEGIN
     SET fiscal_quarter_label = initcap(fiscal_quarter_label);
 END;
 $$;
+call etl.sp_dim_date()
