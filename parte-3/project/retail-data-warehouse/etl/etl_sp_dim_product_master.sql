@@ -2,8 +2,9 @@ CREATE OR REPLACE PROCEDURE etl.sp_dim_product_master()
 LANGUAGE plpgsql AS $$    
 BEGIN
     INSERT INTO dim.product_master(product_code,name,category,subcategory,subsubcategory,material,color,origin,ean,is_active,has_bluetooth,size)
-    VALUES (product_code, name, category, subcategory, subsubcategory, material, color, origin, ean, is_active, has_bluetooth, size)
-	ON CONFLICT(product_code) DO UPDATE
+    SELECT product_code, name, category, subcategory, subsubcategory, material, color, origin, ean, is_active, has_bluetooth, size
+    FROM stg.product_master
+    ON CONFLICT(product_code) DO UPDATE
     SET name = EXCLUDED.name,
         category = EXCLUDED.category,
         subcategory = EXCLUDED.subcategory,
