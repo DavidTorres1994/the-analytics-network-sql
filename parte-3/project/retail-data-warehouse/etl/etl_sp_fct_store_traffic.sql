@@ -22,7 +22,7 @@ BEGIN username := current_user;
 		and ft.date=st.date
 	              ); 
     --sp de logg
-    call etl.log('fct.store_traffic', current_date, 'sp_fct_store_traffic',username);
+    call etl.log('fct.store_traffic', current_date, 'etl.sp_fct_store_traffic',username);
   END;
   $$;
   
