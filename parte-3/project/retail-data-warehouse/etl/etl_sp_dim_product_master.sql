@@ -1,6 +1,7 @@
 CREATE OR REPLACE PROCEDURE etl.sp_dim_product_master()
 LANGUAGE plpgsql AS $$    
-BEGIN
+DECLARE username varchar(10) := current_user;	
+BEGIN username := current_user;
     INSERT INTO dim.product_master(product_code,name,category,subcategory,subsubcategory,material,color,origin,ean,is_active,has_bluetooth,size)
     SELECT product_code, name, category, subcategory, subsubcategory, material, color, origin, ean, is_active, has_bluetooth, size
     FROM stg.product_master
@@ -34,6 +35,8 @@ BEGIN
             WHEN color IS NULL THEN 'Unknown'
             ELSE initcap(color)
         END;
+--sp de logg
+    call etl.log('dim.product_master', current_date, 'etl.sp_dim_product_master',username);
 END;
 $$;
 call etl.sp_dim_product_master()
