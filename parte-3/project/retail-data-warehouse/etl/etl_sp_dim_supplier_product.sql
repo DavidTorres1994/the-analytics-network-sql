@@ -9,7 +9,8 @@ BEGIN username := current_user;
 
     INSERT INTO dim.supplier(product_id, name,is_primary)
     SELECT product_code,name,is_primary
-    FROM stg_supplier;
+    FROM stg_supplier
+    on conflict(product_id) do nothing;;
 --sp de logg
     call etl.log('dim.supplier', current_date, 'etl.sp_dim_supplier_product',username);
 END;
