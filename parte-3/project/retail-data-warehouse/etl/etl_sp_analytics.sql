@@ -1,11 +1,27 @@
 CREATE OR REPLACE PROCEDURE etl.sp_analytics()
 LANGUAGE plpgsql as $$
 BEGIN 
-   DROP TABLE IF EXISTS analytics.order_sale_line;
-   CREATE TABLE IF NOT EXISTS analytics.order_sale_line as
-   SELECT *
-   FROM (
-   with fct_agm as (
+   CREATE TABLE IF NOT EXISTS analytics.order_sale_line(order_number VARCHAR(255), date date,product_code VARCHAR(255)
+  , category VARCHAR(255),subcategory VARCHAR(255),subsubcategory VARCHAR(255),material VARCHAR(255),supplier_name VARCHAR(255),store smallint,
+   store_name VARCHAR(255),country VARCHAR(100),province VARCHAR(100), city VARCHAR(100),month date,month_label text,fiscal_year date
+   ,fiscal_year_label text,fiscal_quarter_label text,is_walkout boolean,quantity integer,gross_sales numeric,
+   gross_sales_usd numeric,promotion numeric,promotion_usd numeric,net_sales numeric,net_sales_usd numeric,
+   tax numeric,tax_usd numeric,credit numeric, credit_usd numeric,sale_line_cost_usd numeric,gross_margin_usd numeric,
+   adjusted_gross_margin_usd numeric,quantity_returned integer,amount_returned_usd integer, receive_location VARCHAR(255),
+   final_location VARCHAR(255));
+   TRUNCATE TABLE analytics.order_sale_line;
+   INSERT INTO analytics.order_sale_line
+   SELECT order_number, date,product_code, category,subcategory,subsubcategory,material,supplier_name,store,
+   store_name,country,province, city,month,month_label,fiscal_year,fiscal_year_label,fiscal_quarter_label,is_walkout,
+   quantity,gross_sales,gross_sales_usd,promotion,promotion_usd,net_sales,net_sales_usd,
+   tax,tax_usd,credit, credit_usd,sale_line_cost_usd,gross_margin_usd,
+   adjusted_gross_margin_usd,quantity_returned,amount_returned_usd, receive_location,
+   final_location
+  -- DROP TABLE IF EXISTS analytics.order_sale_line;
+  -- CREATE TABLE IF NOT EXISTS analytics.order_sale_line as
+  -- SELECT *
+    FROM (
+    with fct_agm as (
    select 
      ols.order_number
     ,ols.product
