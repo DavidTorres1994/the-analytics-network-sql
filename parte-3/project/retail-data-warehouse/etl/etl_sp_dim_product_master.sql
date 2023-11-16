@@ -2,11 +2,17 @@ CREATE OR REPLACE PROCEDURE etl.sp_dim_product_master()
 LANGUAGE plpgsql AS $$    
 DECLARE username varchar(10) := current_user;	
 BEGIN username := current_user;
-    INSERT INTO dim.product_master(product_code,name,category,subcategory,subsubcategory,material,color,origin,ean,is_active,has_bluetooth,size)
-    SELECT product_code, name, category, subcategory, subsubcategory, material, color, origin, ean, is_active, has_bluetooth, size
-    FROM stg.product_master
+    -- Añadir una columna si no existe
+    ALTER TABLE dim.product_master
+    ADD COLUMN IF NOT EXISTS brand VARCHAR(255);
+   
+    
+    INSERT INTO dim.product_master(product_code,name,category,subcategory,subsubcategory,material,color,origin,ean,is_active,has_bluetooth,size,brand)
+    SELECT *
+    FROM stg.product_master 
     ON CONFLICT(product_code) DO UPDATE
-    SET name = EXCLUDED.name,
+    SET product_code = excluded.product_code,
+        name = EXCLUDED.name,
         category = EXCLUDED.category,
         subcategory = EXCLUDED.subcategory,
         material = EXCLUDED.material,
@@ -15,10 +21,9 @@ BEGIN username := current_user;
         ean = EXCLUDED.ean,
         is_active = EXCLUDED.is_active,
         has_bluetooth = EXCLUDED.has_bluetooth,
-        size = EXCLUDED.size;
-    -- Añadir una columna si no existe
-    ALTER TABLE dim.product_master
-    ADD COLUMN IF NOT EXISTS brand VARCHAR(255);
+        size = EXCLUDED.size,
+        brand = EXCLUDED.brand;
+  
     
     -- Actualizar la columna 'material'
     UPDATE dim.product_master
@@ -40,4 +45,3 @@ BEGIN username := current_user;
 END;
 $$;
 call etl.sp_dim_product_master()
-
