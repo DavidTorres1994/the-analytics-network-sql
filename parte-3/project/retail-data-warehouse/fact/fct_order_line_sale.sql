@@ -15,6 +15,8 @@ CREATE TABLE fct.order_line_sale
                             , currency     varchar(3)
                             , pos        SMALLINT
                             , is_walkout BOOLEAN
+                 ,CONSTRAINT pk_order_line_sale 
+                 PRIMARY KEY (order_number, product)
                 ,constraint fk_product_order_line_sale
                 foreign key (product)
                 references dim.product_master(product_code)
