@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS fct.inventory
      item_id VARCHAR(10),
      initial SMALLINT,
      final SMALLINT,
+     CONSTRAINT pk_inventory 
+     PRIMARY KEY (date, store_id, item_id),
      constraint fk_store_id_inventory
      foreign key (store_id)
      references dim.store_master(store_id),
