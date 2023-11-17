@@ -14,13 +14,13 @@ BEGIN username := current_user;
     INSERT INTO fct.store_traffic(store_id,date,traffic)
     SELECT store_id,date,traffic
     FROM store_traffic st
-    --ON conflict(store_id, date) do nothing;
-	WHERE NOT EXISTS (
-        SELECT 1
-        FROM fct.store_traffic ft
-        WHERE ft.store_id = st.store_id
-		and ft.date=st.date
-	              ); 
+    ON conflict(store_id, date) do nothing;
+--	WHERE NOT EXISTS (
+  --      SELECT 1
+    --    FROM fct.store_traffic ft
+      --  WHERE ft.store_id = st.store_id
+	--	and ft.date=st.date
+	  --            ); 
     --sp de logg
     call etl.log('fct.store_traffic', current_date, 'etl.sp_fct_store_traffic',username);
   END;
