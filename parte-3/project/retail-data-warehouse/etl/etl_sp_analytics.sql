@@ -86,25 +86,29 @@ BEGIN
     ols.is_walkout,
     ols.quantity,
     ols.sale as gross_sales,
-    case when ols.currency = 'ARS' then ols.sale/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.sale/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.sale/ma.fx_rate_usd_uru
-         end as gross_sales_usd,
+	etl.convert_usd(ols.currency,ols.sale,ols.date) as gross_sales_usd,	
+   -- case when ols.currency = 'ARS' then ols.sale/ma.fx_rate_usd_peso 
+     --    when ols.currency = 'EUR' then ols.sale/ma.fx_rate_usd_eur
+     --    when ols.currency = 'URU' then ols.sale/ma.fx_rate_usd_uru
+   --      end as gross_sales_usd,
     ols.promotion,
-    case when ols.currency = 'ARS' then ols.promotion/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.promotion/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.promotion/ma.fx_rate_usd_uru
-         end as promotion_usd,
+	etl.convert_usd(ols.currency,ols.promotion,ols.date) as promotion_usd,	
+   -- case when ols.currency = 'ARS' then ols.promotion/ma.fx_rate_usd_peso 
+     --    when ols.currency = 'EUR' then ols.promotion/ma.fx_rate_usd_eur
+       --  when ols.currency = 'URU' then ols.promotion/ma.fx_rate_usd_uru
+     --    end as promotion_usd,
     ols.tax,
-    case when ols.currency = 'ARS' then ols.tax/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.tax/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.tax/ma.fx_rate_usd_uru
-         end as tax_usd,
+	etl.convert_usd(ols.currency,ols.tax,ols.date) as tax_usd,	
+    --case when ols.currency = 'ARS' then ols.tax/ma.fx_rate_usd_peso 
+      --   when ols.currency = 'EUR' then ols.tax/ma.fx_rate_usd_eur
+        -- when ols.currency = 'URU' then ols.tax/ma.fx_rate_usd_uru
+       --  end as tax_usd,
     ols.credit,
-         case when ols.currency = 'ARS' then ols.credit/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.credit/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.credit/ma.fx_rate_usd_uru
-         end as credit_usd,
+		etl.convert_usd(ols.currency,ols.credit,ols.date) as credit_usd,	
+       --  case when ols.currency = 'ARS' then ols.credit/ma.fx_rate_usd_peso 
+       --  when ols.currency = 'EUR' then ols.credit/ma.fx_rate_usd_eur
+      --   when ols.currency = 'URU' then ols.credit/ma.fx_rate_usd_uru
+       --  end as credit_usd,
     cos.cost_usd * ols.quantity as sale_line_cost_usd, 
     agm.distributed_adjustment,
     shrinkage.shrinkage_cost,
@@ -262,26 +266,15 @@ BEGIN
     d.fiscal_quarter_label,
     ols.is_walkout,
     ols.quantity,
-    ols.sale as gross_sales,
-    case when ols.currency = 'ARS' then ols.sale/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.sale/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.sale/ma.fx_rate_usd_uru
-         end as gross_sales_usd,
+	ols.sale as gross_sales,	
+    etl.convert_usd(ols.currency,ols.sale,ols.date) as gross_sales_usd,	
     ols.promotion,
-    case when ols.currency = 'ARS' then ols.promotion/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.promotion/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.promotion/ma.fx_rate_usd_uru
-         end as promotion_usd,
+	etl.convert_usd(ols.currency,ols.promotion,ols.date) as promotion_usd,	
     ols.tax,
-    case when ols.currency = 'ARS' then ols.tax/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.tax/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.tax/ma.fx_rate_usd_uru
-         end as tax_usd,
+	etl.convert_usd(ols.currency,ols.tax,ols.date) as tax_usd,	
     ols.credit,
-         case when ols.currency = 'ARS' then ols.credit/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.credit/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.credit/ma.fx_rate_usd_uru
-         end as credit_usd,
+	etl.convert_usd(ols.currency,ols.credit,ols.date) as credit_usd,	
+      
     cos.cost_usd * ols.quantity as sale_line_cost_usd, 
     agm.distributed_adjustment,
     shrinkage.shrinkage_cost,
@@ -427,26 +420,14 @@ BEGIN
     d.fiscal_quarter_label,
     ols.is_walkout,
     ols.quantity,
-    ols.sale as gross_sales,
-    case when ols.currency = 'ARS' then ols.sale/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.sale/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.sale/ma.fx_rate_usd_uru
-         end as gross_sales_usd,
+    ols.sale as gross_sales,	
+    etl.convert_usd(ols.currency,ols.sale,ols.date) as gross_sales_usd,	
     ols.promotion,
-    case when ols.currency = 'ARS' then ols.promotion/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.promotion/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.promotion/ma.fx_rate_usd_uru
-         end as promotion_usd,
+	etl.convert_usd(ols.currency,ols.promotion,ols.date) as promotion_usd,	
     ols.tax,
-    case when ols.currency = 'ARS' then ols.tax/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.tax/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.tax/ma.fx_rate_usd_uru
-         end as tax_usd,
+	etl.convert_usd(ols.currency,ols.tax,ols.date) as tax_usd,	
     ols.credit,
-         case when ols.currency = 'ARS' then ols.credit/ma.fx_rate_usd_peso 
-         when ols.currency = 'EUR' then ols.credit/ma.fx_rate_usd_eur
-         when ols.currency = 'URU' then ols.credit/ma.fx_rate_usd_uru
-         end as credit_usd,
+	etl.convert_usd(ols.currency,ols.credit,ols.date) as credit_usd,
     cos.cost_usd * ols.quantity as sale_line_cost_usd, 
     agm.distributed_adjustment,
     shrinkage.shrinkage_cost,
