@@ -13,10 +13,10 @@ left join stg.cost c on c.product_code=sh.item_id
 group by TO_DATE(sh.year || '-01-01','YYYY-MM-DD'),sh.item_id,sh.store_id					   
 order by TO_DATE(sh.year || '-01-01','YYYY-MM-DD')),
 order_line_sale_dollars AS (
-         SELECT 
+        SELECT 
             os.product,
             pm.name as product_name,
-	        sum(os.quantity) as quantity,
+	        os.quantity as quantity,
             pm.category,
 	        pm.subcategory,
 	        pm.subsubcategory,
@@ -27,40 +27,40 @@ order_line_sale_dollars AS (
 	        sm.name as store_name,
 	        os.store,
             date_trunc('month'::text, os.date::timestamp with time zone)::date AS date1,
-	        count(DISTINCT os.order_number) as cant_order_number,
-            sum(CASE
+	        os.order_number,
+            CASE
 				    WHEN os.currency::text = 'EUR'::text  THEN os.sale / mr.fx_rate_usd_eur				
 				    WHEN os.currency::text = 'ARS'::text THEN os.sale / mr.fx_rate_usd_peso
                     WHEN os.currency::text = 'URU'::text THEN os.sale / mr.fx_rate_usd_uru
 				    
                     ELSE os.sale
-                END) AS gross_sales_usd,
-	          sum(os.sale) as gross_sales,
-              sum(CASE
+                END AS gross_sales_usd,
+	          os.sale as gross_sales,
+              CASE
                     WHEN os.promotion IS NULL THEN 0::numeric
                     WHEN os.currency::text = 'EUR'::text THEN os.promotion / mr.fx_rate_usd_eur
                     WHEN os.currency::text = 'ARS'::text THEN os.promotion / mr.fx_rate_usd_peso
                     WHEN os.currency::text = 'URU'::text THEN os.promotion / mr.fx_rate_usd_uru
                     ELSE os.promotion
-                END) AS promotion_usd,
-	            sum(os.promotion) as promotion,
-                sum(CASE
+                END AS promotion_usd,
+	            os.promotion as promotion,
+                CASE
                     WHEN os.tax IS NULL THEN 0::numeric
                     WHEN os.currency::text = 'EUR'::text THEN os.tax / mr.fx_rate_usd_eur
                     WHEN os.currency::text = 'ARS'::text THEN os.tax / mr.fx_rate_usd_peso
                     WHEN os.currency::text = 'URU'::text THEN os.tax / mr.fx_rate_usd_uru
                     ELSE os.tax
-                END) AS tax_usd,
-	            sum(os.tax)as tax,
-                sum(CASE
+                END AS tax_usd,
+	            os.tax as tax,
+                CASE
                     WHEN os.credit IS NULL THEN 0::numeric
                     WHEN os.currency::text = 'EUR'::text THEN os.credit / mr.fx_rate_usd_eur
                     WHEN os.currency::text = 'ARS'::text THEN os.credit / mr.fx_rate_usd_peso
                     WHEN os.currency::text = 'URU'::text THEN os.credit / mr.fx_rate_usd_uru
                     ELSE os.credit
-                END) AS credit_usd,
-	           sum(os.credit) as credit,
-            sum(c.product_cost_usd * os.quantity::numeric) AS sale_line_cost_usd
+                END AS credit_usd,
+	           os.credit as credit,
+            c.product_cost_usd * os.quantity::numeric AS sale_line_cost_usd
            FROM stg.order_line_sale os
              LEFT JOIN stg.monthly_average_fx_rate mr ON date_trunc('month'::text, mr.month::timestamp with time zone)::date = date_trunc('month'::text, os.date::timestamp with time zone)::date
              LEFT JOIN stg.cost c ON c.product_code::text = os.product::text
@@ -68,11 +68,12 @@ order_line_sale_dollars AS (
              LEFT JOIN stg.product_master pm ON pm.product_code::text = os.product::text
 		     LEFT JOIN stg.supplier s ON pm.product_code=s.product_id
 	        where is_primary = 'True'
-			group by os.product,pm.name
+			/*group by os.product,pm.name
 	       ,pm.category, pm.subcategory,
 	        pm.subsubcategory,
 	        s.name,sm.country,sm.province,sm.store_id, sm.name, os.store,
-            date_trunc('month'::text, os.date::timestamp with time zone)::date
+            date_trunc('month'::text, os.date::timestamp with time zone)::date,
+			os.order_number */
         ),
 Calendar AS (SELECT 
   TO_CHAR(date, 'yyyymmdd')::integer AS date_id,
@@ -152,7 +153,7 @@ philips_count2 AS (
   GROUP BY año2
 ),
 sale_by_product2 as (
-select spo.date1,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quarter_label
+select spo.date1,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quarter_label,order_number
 ,product,product_name,category,subcategory,subsubcategory,supplier,tienda,store_name
 ,country,province, gross_sales_usd,gross_sales,case  
                    WHEN product_name like '%PHILIPS%' and EXTRACT(YEAR FROM spo.date1)='2022' THEN gross_sales_usd+(20000/pc.count_philips)
@@ -160,10 +161,10 @@ select spo.date1,dia_de_la_semana,month_label,year,fiscal_year_label,fiscal_quar
 				   else gross_sales_usd
 				   end as sale_usd_plus_other_income
 , promotion_usd,promotion, tax_usd,tax, credit_usd,credit
-, (gross_sales_usd-promotion_usd) as net_sales_usd,(gross_sales-promotion) as net_sales, (gross_sales_usd-promotion_usd+tax_usd-credit_usd)as amount_paid_usd,(gross_sales-promotion+tax-credit)as amount_paid
+, (gross_sales_usd-coalesce(promotion_usd,0)) as net_sales_usd,(gross_sales- coalesce(promotion,0)) as net_sales, (gross_sales_usd-promotion_usd+tax_usd-credit_usd)as amount_paid_usd,(gross_sales-promotion+tax-credit)as amount_paid
 ,(gross_sales_usd-promotion_usd)/(costo_inv_prom)as roi, sale_line_cost_usd, (costo_add*1.00/(count(spo.*) over(partition by date_trunc('Year',spo.date1),product,tienda)))as other_cost, (gross_sales_usd-sale_line_cost_usd)AS gross_margin_usd,
- cant_order_number as cantidad_de_ordenes_generadas,
-quantity,(rmm.return_quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity,
+ /*cant_order_number as cantidad_de_ordenes_generadas,*/
+quantity,(rmm.return_quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as return_quantity,(gross_sales_usd/quantity) * (rmm.return_quantity*1.00/(count(rmm.*) over(partition by rmm.mes,product2))) as amount_returned_usd,
 (cantidad_de_gente_que_entra*1.00/(count(cge.*) over(partition by cge.año_mes1,cge.store_id))) as cantidad_de_gente_que_entra
 from sale_by_product spo
 LEFT JOIN philips_count1 pc ON EXTRACT(YEAR FROM spo.date1) = pc.año
