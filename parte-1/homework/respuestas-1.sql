@@ -179,17 +179,14 @@ SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) a
 from stg.order_line_sale os
 left join stg.monthly_average_fx_rate mr on date_trunc('month',mr.month)::date=date_trunc('month', os.date)::date
 -- 9. Calcular cantidad de ventas totales de la empresa en dolares.
-with ventas_totales_en_dolares as (SELECT os.order_number, os.sale, os.currency, cast(date_trunc('month',os.date) as date) as date,
-      CASE
-	  WHEN currency = 'EUR' THEN sale/fx_rate_usd_eur
-	  WHEN currency = 'ARS' THEN sale/fx_rate_usd_peso
-	  WHEN currency = 'URU' THEN sale/fx_rate_usd_URU
-	  ELSE sale
-	  END AS Ventas_en_dolares
+select sum(os.sale)as sale, sum(CASE
+           WHEN currency='ARS' THEN os.sale/mf.fx_rate_usd_peso
+		   WHEN currency='URU' THEN os.sale/mf.fx_rate_usd_uru
+           WHEN currency='EUR' THEN os.sale/mf.fx_rate_usd_eur
+           ELSE os.sale
+		   END) AS total_sale_usd
 from stg.order_line_sale os
-left join stg.monthly_average_fx_rate mr on mr.month=date)
-Select SUM(Ventas_en_dolares) as ventas_totales_de_la_empresa_en_dolares
-from ventas_totales_en_dolares
+left join stg.monthly_average_fx_rate mf on date_trunc('month',os.date)=date_trunc('month',mf.month)
 -- 10. Mostrar en la tabla de ventas el margen de venta por cada linea. Siendo margen = (venta - descuento) - costo expresado en dolares.
 WITH order_line_Sale_dollars as (SELECT os.order_number,os.product, cast(date_trunc('month',os.date) as date) as date,
       CASE
