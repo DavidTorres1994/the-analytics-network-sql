@@ -3,9 +3,9 @@ Tabla maestra de tiendas
 */
 DROP TABLE IF EXISTS dim.store_master;
       
-CREATE TABLE dim.store_master
+CREATE TABLE if not exists dim.store_master
                  (
-                              store_id  SMALLINT
+                              store_id  SMALLINT primary key
                             , country           VARCHAR(100)
                             , province      VARCHAR(100)
                             , city         VARCHAR(100)
