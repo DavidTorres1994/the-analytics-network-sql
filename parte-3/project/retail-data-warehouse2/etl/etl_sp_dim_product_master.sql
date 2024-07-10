@@ -58,10 +58,4 @@ with cte as( select product_code,name,category,subcategory,subsubcategory,materi
     END;
 $$;
 	 
-
-
-
-insert into log.table_updates_2(table_name,date,stored_procedure, username)
-select parameter_table,parameter_date,parameter_stored_procedure, parameter_username	
-$$
-;
+call etl.sp_dim_product_master()
