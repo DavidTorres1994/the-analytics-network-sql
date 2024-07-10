@@ -6,7 +6,7 @@ BEGIN user_name := current_user;
 --añadir columna si no existe
 alter table dim.product_master
 add column if not exists brand VARCHAR(255);
-truncate table dim.product_master;
+--truncate table dim.product_master;
 -- llenar tabla con los datos de stg.product_master
 with cte as( select product_code,name,category,subcategory,subsubcategory,material,color,origin,ean
 			,is_active,has_bluetooth,size, 
