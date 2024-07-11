@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS dim.employee
     province character varying(100) COLLATE pg_catalog."default",
     store_id integer NOT NULL,
     "position" character varying(100) COLLATE pg_catalog."default" NOT NULL,
+     current_flag boolean,
+    effective_start_date date,
+    effective_end_date date,	
     CONSTRAINT employees_pkey PRIMARY KEY (id)
     constraint fk_start_date_employee
 		foreign key (start_date)
