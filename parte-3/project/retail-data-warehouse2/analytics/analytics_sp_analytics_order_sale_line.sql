@@ -67,44 +67,49 @@ fiscal_quarter_label as fiscal_quarter,
 is_walkout,
 os.quantity,
 rm.quantity as quantity_returned,
-  CASE
-          WHEN currency='ARS' THEN (os.sale*rm.quantity/mf.fx_rate_usd_peso)/os.quantity
-		  WHEN currency='URU' THEN (os.sale*rm.quantity/mf.fx_rate_usd_uru)/os.quantity
-          WHEN currency='EUR' THEN (os.sale*rm.quantity/mf.fx_rate_usd_eur)/os.quantity
-          ELSE (os.sale*rm.quantity)/os.quantity
-		  END AS amount_returned_usd,
+   etl.convert_currency_usd((os.sale*rm.quantity)/os.quantity,os.date,os.currency)AS amount_returned_usd,
+  --CASE
+    --      WHEN currency='ARS' THEN (os.sale*rm.quantity/mf.fx_rate_usd_peso)/os.quantity
+	--	  WHEN currency='URU' THEN (os.sale*rm.quantity/mf.fx_rate_usd_uru)/os.quantity
+     --     WHEN currency='EUR' THEN (os.sale*rm.quantity/mf.fx_rate_usd_eur)/os.quantity
+     --     ELSE (os.sale*rm.quantity)/os.quantity
+	--	  END AS amount_returned_usd,
 receive_location,
 final_location,
           os.sale as gross_sales,
-         CASE
-          WHEN currency='ARS' THEN os.sale/mf.fx_rate_usd_peso
-		  WHEN currency='URU' THEN os.sale/mf.fx_rate_usd_uru
-          WHEN currency='EUR' THEN os.sale/mf.fx_rate_usd_eur
-          ELSE os.sale
-		  END AS gross_sales_usd,
+      etl.convert_currency_usd(os.sale,os.date,os.currency)AS gross_sales_usd,
+     --   CASE
+     --   WHEN currency='ARS' THEN os.sale/mf.fx_rate_usd_peso
+	 --	  WHEN currency='URU' THEN os.sale/mf.fx_rate_usd_uru
+     --   WHEN currency='EUR' THEN os.sale/mf.fx_rate_usd_eur
+     --   ELSE os.sale
+	 --	  END AS gross_sales_usd,
 		  other_income,
 		  shrinkage_cost,
 		  os.promotion,
-		  CASE
-          WHEN currency='ARS' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_peso
-		  WHEN currency='URU' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_uru
-          WHEN currency='EUR' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_eur
-          ELSE os.promotion
-		  END AS promotion_usd,
+          etl.convert_currency_usd(coalesce(os.promotion,0),os.date,os.currency) AS promotion_usd,
+	--	  CASE
+    --      WHEN currency='ARS' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_peso
+	--	  WHEN currency='URU' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_uru
+    --      WHEN currency='EUR' THEN coalesce(os.promotion,0)/mf.fx_rate_usd_eur
+    --      ELSE os.promotion
+	--	  END AS promotion_usd,
 		  os.credit,
-		  CASE
-          WHEN currency='ARS' THEN coalesce(os.credit,0)/mf.fx_rate_usd_peso
-		  WHEN currency='URU' THEN coalesce(os.credit,0)/mf.fx_rate_usd_uru
-          WHEN currency='EUR' THEN coalesce(os.credit,0)/mf.fx_rate_usd_eur
-          ELSE os.credit
-		  END AS credit_usd,
+          etl.convert_currency_usd(coalesce(os.credit,0),os.date,os.currency) AS credit_usd,
+	--	  CASE
+    --      WHEN currency='ARS' THEN coalesce(os.credit,0)/mf.fx_rate_usd_peso
+	--	  WHEN currency='URU' THEN coalesce(os.credit,0)/mf.fx_rate_usd_uru
+    --      WHEN currency='EUR' THEN coalesce(os.credit,0)/mf.fx_rate_usd_eur
+    --      ELSE os.credit
+	--	  END AS credit_usd,
 		  os.tax,
-		  CASE
-          WHEN currency='ARS' THEN coalesce(os.tax,0)/mf.fx_rate_usd_peso
-		  WHEN currency='URU' THEN coalesce(os.tax,0)/mf.fx_rate_usd_uru
-          WHEN currency='EUR' THEN coalesce(os.tax,0)/mf.fx_rate_usd_eur
-          ELSE os.tax
-		  END AS tax_usd,
+          etl.convert_currency_usd(coalesce(os.tax,0),os.date,os.currency) AS tax_usd,
+	--	  CASE
+    --      WHEN currency='ARS' THEN coalesce(os.tax,0)/mf.fx_rate_usd_peso
+	--	  WHEN currency='URU' THEN coalesce(os.tax,0)/mf.fx_rate_usd_uru
+    --      WHEN currency='EUR' THEN coalesce(os.tax,0)/mf.fx_rate_usd_eur
+    --      ELSE os.tax
+	--	  END AS tax_usd,
 							 
 		  (c.cost_usd*os.quantity)as sale_line_cost_usd
 from stg.order_line_sale os
