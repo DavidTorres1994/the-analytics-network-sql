@@ -110,7 +110,7 @@ final_location,
 	--	  END AS tax_usd,
 							 
 		  (c.cost_usd*os.quantity)as sale_line_cost_usd
-from stg.order_line_sale os
+from fct.order_line_sale os
 left join fct.fx_rate mf on date_trunc('month',os.date)=date_trunc('month',mf.month)
 left join dim.cost c on c.product_id=os.product
 left join dim.store_master sm on sm.store_id=os.store
@@ -125,3 +125,22 @@ where is_primary = 'True' and rm.quantity is not NULL);
 end;
 $$;
 call analytics.sp_analytics_return()
+
+CREATE OR REPLACE PROCEDURE analytics.sp_test_pk_analytics_return()
+LANGUAGE plpgsql as $$
+
+BEGIN 
+IF EXISTS (
+        SELECT order_number, product_code,count(1)
+        FROM analytics.return2
+        GROUP BY 1, 2
+        HAVING count(1) > 1
+    ) THEN
+        RAISE EXCEPTION 'Duplicados encontrados en return';
+    END IF;
+
+  
+  END;
+$$;
+
+call analytics.sp_test_pk_analytics_return()
