@@ -127,3 +127,22 @@ where is_primary = 'True' );
 end;
 $$;
 call analytics.sp_analytics_order_sale_line()
+
+CREATE OR REPLACE PROCEDURE analytics.sp_test_pk_analytics_order_sale_line()
+LANGUAGE plpgsql as $$
+
+BEGIN 
+IF EXISTS (
+        SELECT order_number, product_code,count(1)
+        FROM analytics.order_sale_line2
+        GROUP BY 1, 2
+        HAVING count(1) > 1
+    ) THEN
+        RAISE EXCEPTION 'Duplicados encontrados en order_line_sale';
+    END IF;
+
+  
+  END;
+$$;
+
+call analytics.sp_test_pk_analytics_order_sale_line()
