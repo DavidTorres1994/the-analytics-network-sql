@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE etl.sp_backup_dim_fct()
+CREATE OR REPLACE PROCEDURE bkp.sp_backup_dim_fct()
 LANGUAGE sql AS $$    
 --backup tabla fct_order_line_sale    
 CREATE TABLE IF NOT EXISTS bkp.bkp_fct_order_line_sale_20240711 AS
