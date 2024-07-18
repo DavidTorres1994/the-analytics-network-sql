@@ -112,7 +112,7 @@ final_location,
 	--	  END AS tax_usd,
 							 
 		  (c.cost_usd*os.quantity)as sale_line_cost_usd
-from stg.order_line_sale os
+from fct.order_line_sale os
 left join fct.fx_rate mf on date_trunc('month',os.date)=date_trunc('month',mf.month)
 left join dim.cost c on c.product_id=os.product
 left join dim.store_master sm on sm.store_id=os.store
