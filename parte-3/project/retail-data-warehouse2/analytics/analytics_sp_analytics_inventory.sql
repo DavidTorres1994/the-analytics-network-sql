@@ -12,9 +12,9 @@ select date , product_code,store ,order_number,country,province,store_name ,cate
 	supplier_name ,month ,month_label, year,fiscal_year,fiscal_quarter, Avg_Inv,Cost_Avg_Inv
 from		   
 (
-select o.date,
-o.product as product_code,
-o.store,
+select i.date,
+i.item_id as product_code,
+i.store_id as store,
 o.order_number,
 sm.country,
 sm.province,
@@ -44,3 +44,22 @@ where s.is_primary = 'True');
 end;
 $$;
 call analytics.sp_analytics_inventory()
+
+CREATE OR REPLACE PROCEDURE analytics.sp_test_pk_analytics_inventory()
+LANGUAGE plpgsql as $$
+
+BEGIN 
+IF EXISTS (
+        SELECT date, store, product_code,count(1)
+        FROM analytics.inventory2
+        GROUP BY 1, 2,3
+        HAVING count(1) > 1
+    ) THEN
+        RAISE EXCEPTION 'Duplicados encontrados en inventory';
+    END IF;
+
+  
+  END;
+$$;
+
+call analytics.sp_test_pk_analytics_inventory()
