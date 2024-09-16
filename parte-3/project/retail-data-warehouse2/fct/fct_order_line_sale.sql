@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS fct.order_line_sale;
     
-CREATE TABLE IF EXISTS fct.order_line_sale
+CREATE TABLE IF NOT EXISTS fct.order_line_sale
                  (
                               order_number      VARCHAR(255)
                             , product   VARCHAR(10)
